@@ -85,7 +85,7 @@ For the impatient, here are the most common commands:
 
 ```bash
 # Clone or download the repository
-cd pwd.horizon.cc
+git clone https://github.com/HenryCooper86/cipher.git
 
 # Install dependencies
 pip install -r requirements.txt
