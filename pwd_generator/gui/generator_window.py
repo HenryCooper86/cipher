@@ -16,8 +16,9 @@ from pwd_generator.gui.widgets import (
 )
 from pwd_generator import SecurePasswordGenerator
 from pwd_generator.exceptions import ValidationError, PasswordGeneratorError
-import threading
 import logging
+import threading
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -256,6 +257,11 @@ class GeneratorPanel(QWidget):
         """Get the current password."""
         return self._current_password
 
+    def refresh_theme_styles(self) -> None:
+        """Reapply theme-dependent inline styles after global theme change."""
+        self.strength_meter.refresh_from_theme()
+        self.password_display.refresh_theme_styles()
+
 
 class AnalyzerPanel(QWidget):
     """
@@ -273,6 +279,7 @@ class AnalyzerPanel(QWidget):
     def __init__(self, generator: SecurePasswordGenerator, parent=None):
         super().__init__(parent)
         self._generator = generator
+        self._breach_ui_state: Optional[str] = None
         self._setup_ui()
         
         # Connect signal for thread-safe updates
@@ -307,12 +314,14 @@ class AnalyzerPanel(QWidget):
         breach_group = QGroupBox("Breach Check")
         breach_layout = QVBoxLayout(breach_group)
         
-        breach_info = QLabel(
+        self.breach_info = QLabel(
             "Check if your password has appeared in known data breaches.\n"
             "Uses HaveIBeenPwned API with k-anonymity (your password never leaves this device)."
         )
-        breach_info.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')};")
-        breach_layout.addWidget(breach_info)
+        self.breach_info.setStyleSheet(
+            f"color: {theme_manager.get_color('text_secondary')};"
+        )
+        breach_layout.addWidget(self.breach_info)
         
         self.breach_btn = QPushButton("Check for breaches")
         self.breach_btn.clicked.connect(self._check_breach)
@@ -354,7 +363,11 @@ class AnalyzerPanel(QWidget):
         
         self.breach_btn.setEnabled(False)
         self.breach_btn.setText("Checking...")
+        self._breach_ui_state = "checking"
         self.breach_result.setText("Checking breach database...")
+        self.breach_result.setStyleSheet(
+            f"color: {theme_manager.get_color('text_secondary')};"
+        )
         
         # Run breach check in background thread
         def do_check():
@@ -376,6 +389,7 @@ class AnalyzerPanel(QWidget):
         
         # Check for error
         if details.get('error'):
+            self._breach_ui_state = "error"
             self.breach_result.setText(
                 f"Error checking breach status: {details['error']}\n"
                 "Please check your internet connection and try again."
@@ -384,6 +398,7 @@ class AnalyzerPanel(QWidget):
             return
         
         if is_breached:
+            self._breach_ui_state = "breached"
             count = details.get('count', 'Unknown')
             self.breach_result.setText(
                 f"BREACHED: This password appeared {count:,} times in data breaches.\n"
@@ -391,11 +406,38 @@ class AnalyzerPanel(QWidget):
             )
             self.breach_result.setStyleSheet(f"color: {theme_manager.get_color('accent_danger')}; font-weight: bold;")
         else:
+            self._breach_ui_state = "safe"
             self.breach_result.setText(
                 "Not found in known breach data (Have I Been Pwned).\n"
                 "That does not guarantee the password is strong or unique."
             )
             self.breach_result.setStyleSheet(f"color: {theme_manager.get_color('accent_success')};")
+
+    def refresh_theme_styles(self) -> None:
+        """Reapply theme-dependent inline styles after global theme change."""
+        self.breach_info.setStyleSheet(
+            f"color: {theme_manager.get_color('text_secondary')};"
+        )
+        state = self._breach_ui_state
+        if state == "checking":
+            self.breach_result.setStyleSheet(
+                f"color: {theme_manager.get_color('text_secondary')};"
+            )
+        elif state == "error":
+            self.breach_result.setStyleSheet(
+                f"color: {theme_manager.get_color('accent_warning')};"
+            )
+        elif state == "breached":
+            self.breach_result.setStyleSheet(
+                f"color: {theme_manager.get_color('accent_danger')}; font-weight: bold;"
+            )
+        elif state == "safe":
+            self.breach_result.setStyleSheet(
+                f"color: {theme_manager.get_color('accent_success')};"
+            )
+        else:
+            self.breach_result.setStyleSheet("")
+        self.strength_meter.refresh_from_theme()
 
 
 class GeneratorWindow(QWidget):
@@ -435,6 +477,11 @@ class GeneratorWindow(QWidget):
             self.tabs.addTab(scroll, title)
 
         layout.addWidget(self.tabs)
+
+    def refresh_theme_styles(self) -> None:
+        """Reapply theme-dependent inline styles after global theme change."""
+        self.generator_panel.refresh_theme_styles()
+        self.analyzer_panel.refresh_theme_styles()
     
     def generate_password(self):
         """Generate a password in the generator panel."""

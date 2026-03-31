@@ -27,6 +27,7 @@ class PasswordDisplay(QWidget):
         self._password = ""
         self._show_password = False
         self._placeholder = placeholder
+        self._copy_feedback_active = False
         self._setup_ui()
     
     def _setup_ui(self):
@@ -107,7 +108,10 @@ class PasswordDisplay(QWidget):
         # Visual feedback
         self.status_label.setText("Copied to clipboard.")
         self.copy_button.setText("Copied")
-        self.copy_button.setStyleSheet(f"background-color: {theme_manager.get_color('accent_success')}; color: white;")
+        self._copy_feedback_active = True
+        self.copy_button.setStyleSheet(
+            f"background-color: {theme_manager.get_color('accent_success')}; color: white;"
+        )
         
         # Reset after delay
         QTimer.singleShot(2000, self._reset_copy_button)
@@ -115,8 +119,21 @@ class PasswordDisplay(QWidget):
     def _reset_copy_button(self):
         """Reset the copy button to default state."""
         self.copy_button.setText("Copy")
+        self._copy_feedback_active = False
         self.copy_button.setStyleSheet("")
         self.status_label.clear()
+
+    def refresh_theme_styles(self) -> None:
+        """Reapply theme-dependent inline styles after global theme change."""
+        self.status_label.setStyleSheet(
+            f"color: {theme_manager.get_color('accent_success')}; font-size: 11px;"
+        )
+        if self._copy_feedback_active:
+            self.copy_button.setStyleSheet(
+                f"background-color: {theme_manager.get_color('accent_success')}; color: white;"
+            )
+        else:
+            self.copy_button.setStyleSheet("")
 
 
 class PasswordEditor(QWidget):

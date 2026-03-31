@@ -12,6 +12,7 @@ from pwd_generator.gui import (
     QGridLayout, QGroupBox, Qt, QSplitter, QSizePolicy,
 )
 from pwd_generator.gui.widgets import theme_manager
+from pwd_generator.gui import icons as gui_icons
 from pwd_generator.gui.generator_window import GeneratorWindow
 from pwd_generator.gui.history_window import HistoryWindow
 from pwd_generator.gui.settings_window import SettingsWindow
@@ -120,6 +121,7 @@ class MainWindow(QMainWindow):
         self._master_password = None
         
         self._setup_ui()
+        self.setWindowIcon(gui_icons.create_application_icon())
         self._setup_menus()
         self._setup_toolbar()
         self._setup_statusbar()
@@ -132,7 +134,7 @@ class MainWindow(QMainWindow):
     
     def _setup_ui(self):
         """Set up the main UI."""
-        self.setWindowTitle("Horizon Password Generator")
+        self.setWindowTitle("Horizon Password Manager")
         self.setMinimumSize(880, 560)
         self.resize(1100, 720)
 
@@ -166,6 +168,8 @@ class MainWindow(QMainWindow):
         self._main_splitter.setSizes([224, 876])
 
         outer.addWidget(self._main_splitter)
+
+        theme_manager.register_theme_listener(self._on_theme_applied)
     
     def _create_sidebar(self) -> QWidget:
         """Create the navigation sidebar."""
@@ -179,12 +183,14 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(12, 20, 12, 16)
         layout.setSpacing(10)
 
-        self._sidebar_title = QLabel("Horizon")
+        self._sidebar_title = QLabel("Horizon Password\nManager")
+        self._sidebar_title.setWordWrap(True)
         self._sidebar_title.setStyleSheet(
             f"""
-            font-size: 20px;
+            font-size: 15px;
             font-weight: 700;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
+            line-height: 1.25;
             padding: 4px 4px 12px 4px;
             color: {theme_manager.get_color('text_primary')};
         """
@@ -230,12 +236,12 @@ class MainWindow(QMainWindow):
         self.theme_btn.clicked.connect(self._toggle_theme)
         layout.addWidget(self.theme_btn)
 
-        version = QLabel("v1.0.0")
-        version.setStyleSheet(
+        self._sidebar_version_label = QLabel("v1.0.0")
+        self._sidebar_version_label.setStyleSheet(
             f"color: {theme_manager.get_color('text_secondary')}; font-size: 11px;"
         )
-        version.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(version)
+        self._sidebar_version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self._sidebar_version_label)
 
         self._apply_sidebar_chrome()
         return sidebar
@@ -390,6 +396,19 @@ class MainWindow(QMainWindow):
         else:
             self.theme_btn.setText("Switch to dark theme")
 
+    def _on_theme_applied(self) -> None:
+        self._apply_sidebar_chrome()
+        self._sync_theme_button_label()
+        if getattr(self, "_generator", None) and hasattr(self, "generator_view"):
+            self.generator_view.refresh_theme_styles()
+            self.history_view.refresh_theme_styles()
+            self.settings_view.refresh_theme_styles()
+        version = getattr(self, "_sidebar_version_label", None)
+        if version is not None:
+            version.setStyleSheet(
+                f"color: {theme_manager.get_color('text_secondary')}; font-size: 11px;"
+            )
+
     def _apply_sidebar_chrome(self) -> None:
         if not hasattr(self, "_sidebar"):
             return
@@ -408,9 +427,10 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_sidebar_title"):
             self._sidebar_title.setStyleSheet(
                 f"""
-            font-size: 20px;
+            font-size: 15px;
             font-weight: 700;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
+            line-height: 1.25;
             padding: 4px 4px 12px 4px;
             color: {theme_manager.get_color('text_primary')};
         """
@@ -419,9 +439,7 @@ class MainWindow(QMainWindow):
     def _toggle_theme(self):
         """Toggle between dark and light theme."""
         theme_manager.toggle_theme()
-        self._sync_theme_button_label()
         theme_manager.apply_theme(QApplication.instance())
-        self._apply_sidebar_chrome()
     
     def _export_history(self):
         """Export password history."""
@@ -513,8 +531,8 @@ class MainWindow(QMainWindow):
         """Show about dialog."""
         QMessageBox.about(
             self,
-            "About Horizon Password Generator",
-            "<h3>Horizon Password Generator</h3>"
+            "About Horizon Password Manager",
+            "<h3>Horizon Password Manager</h3>"
             "<p>A secure password generator with encrypted history, "
             "breach checking, and password analysis.</p>"
             "<p>Features:</p>"
@@ -545,13 +563,26 @@ class MainWindow(QMainWindow):
 def run_gui():
     """Run the GUI application."""
     import sys
-    
+
+    try:
+        from PyQt6.QtWidgets import QStyleFactory
+    except ImportError:
+        from PySide6.QtWidgets import QStyleFactory
+
     app = QApplication(sys.argv)
-    app.setApplicationName("Horizon Password Generator")
+    fusion = QStyleFactory.create("Fusion")
+    if fusion is not None:
+        app.setStyle(fusion)
+    app.setApplicationName("Horizon Password Manager")
     app.setApplicationVersion("1.0.0")
-    app.setOrganizationName("Horizon")
-    
-    # Apply theme
+    app.setOrganizationName("Horizon Password Manager")
+    app.setWindowIcon(gui_icons.create_application_icon())
+
+    cfg = load_config()
+    theme = cfg.get("theme")
+    if isinstance(theme, str) and theme.lower() in ("dark", "light"):
+        theme_manager.set_theme(theme.lower())
+
     theme_manager.apply_theme(app)
     
     # Create and show main window

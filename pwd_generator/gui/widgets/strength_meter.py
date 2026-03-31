@@ -4,9 +4,13 @@ Password Strength Meter Widget
 Visual indicator for password strength with color-coded progress bar.
 """
 
+from __future__ import annotations
+
+from typing import Optional
+
 from pwd_generator.gui import (
     QWidget, QLabel, QProgressBar, QVBoxLayout, QHBoxLayout,
-    QColor, Qt, QFrame, QGridLayout
+    QColor, Qt, QFrame, QGridLayout,
 )
 from pwd_generator.gui.widgets.theme import theme_manager
 
@@ -35,6 +39,8 @@ class StrengthMeter(QWidget):
         super().__init__(parent)
         self._current_strength = "Weak"
         self._current_entropy = 0.0
+        self._last_stats: Optional[dict] = None
+        self._meter_cleared = True
         self._setup_ui()
     
     def _setup_ui(self):
@@ -88,6 +94,8 @@ class StrengthMeter(QWidget):
             entropy: Entropy value in bits
             stats: Optional dict with character stats
         """
+        self._meter_cleared = False
+        self._last_stats = stats
         self._current_strength = strength
         self._current_entropy = entropy
         
@@ -147,12 +155,35 @@ class StrengthMeter(QWidget):
                 label.setText(f"{label_key.capitalize()}: {check}")
                 label.setStyleSheet(f"color: {color}; font-size: 11px;")
     
+    def refresh_from_theme(self) -> None:
+        """Reapply colors after global theme change."""
+        if self._meter_cleared:
+            self.entropy_label.setStyleSheet(
+                f"color: {theme_manager.get_color('text_secondary')};"
+            )
+            for label in self.stats_labels.values():
+                label.setStyleSheet(
+                    f"color: {theme_manager.get_color('text_secondary')}; font-size: 11px;"
+                )
+            self.progress_bar.setStyleSheet("")
+            self.strength_label.setStyleSheet("font-weight: bold;")
+            return
+        self.set_strength(
+            self._current_strength, self._current_entropy, self._last_stats
+        )
+
     def clear(self):
         """Reset the strength meter."""
+        self._meter_cleared = True
+        self._last_stats = None
         self.strength_label.setText("Password Strength: -")
         self.strength_label.setStyleSheet("font-weight: bold;")
         self.entropy_label.setText("Entropy: 0.0 bits")
+        self.entropy_label.setStyleSheet(
+            f"color: {theme_manager.get_color('text_secondary')};"
+        )
         self.progress_bar.setValue(0)
+        self.progress_bar.setStyleSheet("")
         
         for stat_name, label in self.stats_labels.items():
             label.setText(f"{stat_name.capitalize()}: -")
@@ -193,7 +224,10 @@ class StrengthIndicator(QWidget):
             background-color: {color};
             border-radius: 4px;
         """)
-        self.label.setStyleSheet("color: white; font-size: 11px; font-weight: bold;")
+        badge = theme_manager.get_color("strength_badge_text")
+        self.label.setStyleSheet(
+            f"color: {badge}; font-size: 11px; font-weight: bold;"
+        )
     
     def _get_strength_color(self, strength: str) -> str:
         """Get the color for a given strength level."""

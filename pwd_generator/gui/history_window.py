@@ -10,14 +10,25 @@ from pwd_generator.gui import (
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
     QMessageBox, QFileDialog, QDialog, QTextEdit, QComboBox,
     QDialogButtonBox, QDateEdit, Qt, QApplication, QClipboard,
-    QSizePolicy,
+    QSizePolicy, QColor, QBrush,
 )
 from pwd_generator.gui.widgets import theme_manager
+from pwd_generator.gui.widgets.tick_checkbox import TickCheckBox
 from pwd_generator import SecurePasswordGenerator
 from pwd_generator.exceptions import HistoryError, EncryptionError
-from pwd_generator.gui.widgets.strength_meter import StrengthIndicator
 from datetime import datetime
 from pathlib import Path
+
+# Column indices (0 = checkbox)
+COL_SELECT = 0
+COL_SERVICE = 1
+COL_PASSWORD = 2
+COL_STRENGTH = 3
+COL_ENTROPY = 4
+COL_CREATED = 5
+
+# Service cell stores vault index in full history (for filtered views)
+HISTORY_INDEX_ROLE = Qt.ItemDataRole.UserRole + 1
 
 
 class HistoryWindow(QWidget):
@@ -65,28 +76,31 @@ class HistoryWindow(QWidget):
         
         layout.addLayout(search_layout)
         
-        # History table
+        # History table (column 0 = checkbox)
         self.history_table = QTableWidget()
         self.history_table.setMinimumHeight(200)
-        self.history_table.setColumnCount(5)
-        self.history_table.setHorizontalHeaderLabels(["Service", "Password", "Strength", "Entropy", "Created"])
+        self.history_table.setColumnCount(6)
+        self.history_table.setHorizontalHeaderLabels(
+            ["", "Service", "Password", "Strength", "Entropy", "Created"]
+        )
         self.history_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.history_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.history_table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.history_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.history_table.setAlternatingRowColors(True)
-        self.history_table.doubleClicked.connect(self._show_entry_details)
+        self.history_table.doubleClicked.connect(self._on_table_double_clicked)
         
-        # Set column widths
         header = self.history_table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(COL_SELECT, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(COL_SERVICE, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(COL_PASSWORD, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(COL_STRENGTH, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(COL_ENTROPY, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(COL_CREATED, QHeaderView.ResizeMode.Fixed)
         
-        self.history_table.setColumnWidth(2, 100)
-        self.history_table.setColumnWidth(3, 80)
-        self.history_table.setColumnWidth(4, 110)
+        self.history_table.setColumnWidth(COL_SELECT, 48)
+        self.history_table.setColumnWidth(COL_STRENGTH, 100)
+        self.history_table.setColumnWidth(COL_ENTROPY, 88)
+        self.history_table.setColumnWidth(COL_CREATED, 130)
         
         layout.addWidget(self.history_table, 1)
         
@@ -153,32 +167,60 @@ class HistoryWindow(QWidget):
     
     def _load_history(self):
         """Load history from the generator."""
-        self._populate_table(self._generator.history)
-    
-    def _populate_table(self, entries: list):
-        """Populate the table with history entries."""
-        self.history_table.setRowCount(len(entries))
-        
-        for row, entry in enumerate(entries):
+        pairs = list(enumerate(self._generator.history))
+        self._populate_table(pairs)
+
+    def _filtered_pairs(self) -> list:
+        """Return [(history_index, entry), ...] matching current filters."""
+        search = self.search_edit.text().lower()
+        strength_filter = self.strength_filter.currentText()
+        pairs = []
+        for hist_idx, entry in enumerate(self._generator.history):
             meta = entry.get("metadata", {})
-            
-            # Service
+            if search:
+                service = meta.get("service", "").lower()
+                notes = meta.get("notes", "").lower()
+                if search not in service and search not in notes:
+                    continue
+            if strength_filter != "All":
+                if meta.get("strength") != strength_filter:
+                    continue
+            pairs.append((hist_idx, entry))
+        return pairs
+
+    def _populate_table(self, pairs: list) -> None:
+        """Populate rows from (history_index, entry) pairs."""
+        self.history_table.setRowCount(0)
+        self.history_table.setRowCount(len(pairs))
+
+        for row, (hist_idx, entry) in enumerate(pairs):
+            meta = entry.get("metadata", {})
+
+            box_host = QWidget()
+            box_host.setObjectName("historyCheckboxHost")
+            box_host.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            hl = QHBoxLayout(box_host)
+            hl.setContentsMargins(4, 2, 4, 2)
+            hl.addStretch()
+            cb = TickCheckBox()
+            cb.setToolTip("Select this entry")
+            hl.addWidget(cb)
+            hl.addStretch()
+            self.history_table.setCellWidget(row, COL_SELECT, box_host)
+
             service_item = QTableWidgetItem(meta.get("service", "Unknown"))
-            self.history_table.setItem(row, 0, service_item)
-            
-            # Password (masked)
+            service_item.setData(HISTORY_INDEX_ROLE, hist_idx)
+            self.history_table.setItem(row, COL_SERVICE, service_item)
+
             password = entry.get("password", "")
             masked = "•" * min(len(password), 16)
             password_item = QTableWidgetItem(masked)
-            password_item.setData(Qt.ItemDataRole.UserRole, password)  # Store actual password
-            self.history_table.setItem(row, 1, password_item)
-            
-            # Strength
+            password_item.setData(Qt.ItemDataRole.UserRole, password)
+            self.history_table.setItem(row, COL_PASSWORD, password_item)
+
             strength = meta.get("strength", "-")
             strength_item = QTableWidgetItem(strength)
             strength_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            
-            # Color code by strength
             strength_colors = {
                 "Weak": theme_manager.get_color("strength_weak"),
                 "Fair": theme_manager.get_color("strength_fair"),
@@ -187,54 +229,99 @@ class HistoryWindow(QWidget):
                 "Very Strong": theme_manager.get_color("strength_very_strong"),
             }
             if strength in strength_colors:
-                strength_item.setForeground(Qt.GlobalColor.white)
-                strength_item.setBackground(Qt.GlobalColor.darkGray)
-            
-            self.history_table.setItem(row, 2, strength_item)
-            
-            # Entropy
+                hex_bg = strength_colors[strength]
+                strength_item.setBackground(QBrush(QColor(hex_bg)))
+                strength_item.setForeground(
+                    QBrush(QColor(theme_manager.get_color("strength_badge_text")))
+                )
+            self.history_table.setItem(row, COL_STRENGTH, strength_item)
+
             entropy = meta.get("entropy", 0)
             entropy_item = QTableWidgetItem(f"{entropy:.1f} bits")
             entropy_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.history_table.setItem(row, 3, entropy_item)
-            
-            # Created
+            self.history_table.setItem(row, COL_ENTROPY, entropy_item)
+
             created = meta.get("created_at", "")
             if created:
                 try:
                     dt = datetime.fromisoformat(created)
                     created = dt.strftime("%Y-%m-%d %H:%M")
-                except:
+                except Exception:
                     pass
             created_item = QTableWidgetItem(created)
-            self.history_table.setItem(row, 4, created_item)
-        
-        self._update_stats(len(entries))
-    
+            self.history_table.setItem(row, COL_CREATED, created_item)
+
+        self._update_stats(len(pairs))
+
     def _filter_history(self):
         """Filter history based on search and strength filter."""
-        search = self.search_edit.text().lower()
-        strength_filter = self.strength_filter.currentText()
-        
-        filtered = []
-        for entry in self._generator.history:
-            meta = entry.get("metadata", {})
-            
-            # Search filter
-            if search:
-                service = meta.get("service", "").lower()
-                notes = meta.get("notes", "").lower()
-                if search not in service and search not in notes:
-                    continue
-            
-            # Strength filter
-            if strength_filter != "All":
-                if meta.get("strength") != strength_filter:
-                    continue
-            
-            filtered.append(entry)
-        
-        self._populate_table(filtered)
+        self._populate_table(self._filtered_pairs())
+
+    def _get_checkbox_at_row(self, row: int):
+        host = self.history_table.cellWidget(row, COL_SELECT)
+        if host is None:
+            return None
+        return host.findChild(TickCheckBox)
+
+    def _checked_rows(self) -> list:
+        rows = []
+        for r in range(self.history_table.rowCount()):
+            cb = self._get_checkbox_at_row(r)
+            if cb is not None and cb.isChecked():
+                rows.append(r)
+        return rows
+
+    def _history_index_for_row(self, row: int):
+        it = self.history_table.item(row, COL_SERVICE)
+        if it is None:
+            return None
+        v = it.data(HISTORY_INDEX_ROLE)
+        return int(v) if v is not None else None
+
+    def _resolve_single_action_row(self) -> int:
+        """One table row: single checked box, or exactly one selected row."""
+        checked = self._checked_rows()
+        if len(checked) == 1:
+            return checked[0]
+        if len(checked) > 1:
+            QMessageBox.warning(
+                self,
+                "Multiple selected",
+                "Use one checked row, or uncheck all and select a single row.",
+            )
+            return -1
+        selected = self.history_table.selectedItems()
+        if not selected:
+            QMessageBox.warning(
+                self,
+                "No selection",
+                "Select a row or check exactly one entry.",
+            )
+            return -1
+        rows = {it.row() for it in selected}
+        if len(rows) != 1:
+            QMessageBox.warning(
+                self,
+                "No selection",
+                "Select a single row.",
+            )
+            return -1
+        return next(iter(rows))
+
+    def _on_table_double_clicked(self, index):
+        if index.column() == COL_SELECT:
+            return
+        self._show_entry_details_for_row(index.row())
+
+    def _show_entry_details_for_row(self, row: int):
+        hist_idx = self._history_index_for_row(row)
+        if hist_idx is None:
+            return
+        if hist_idx < 0 or hist_idx >= len(self._generator.history):
+            return
+        entry = self._generator.history[hist_idx]
+        dialog = EntryDetailDialog(entry, self)
+        dialog.exec()
     
     def _update_stats(self, count: int):
         """Update the stats label."""
@@ -244,100 +331,77 @@ class HistoryWindow(QWidget):
         else:
             self.stats_label.setText(f"Showing: {count} of {total} entries")
     
-    def _get_selected_index(self) -> int:
-        """Get the index of the selected row."""
-        selected = self.history_table.selectedItems()
-        if not selected:
-            return -1
-        return selected[0].row()
-    
     def _copy_selected_password(self):
-        """Copy the selected password to clipboard."""
-        row = self._get_selected_index()
+        """Copy password from the single checked or selected row."""
+        row = self._resolve_single_action_row()
         if row < 0:
-            QMessageBox.warning(self, "No Selection", "Please select a password entry.")
             return
-        
-        password_item = self.history_table.item(row, 1)
+
+        password_item = self.history_table.item(row, COL_PASSWORD)
+        if password_item is None:
+            return
         password = password_item.data(Qt.ItemDataRole.UserRole)
-        
-        from pwd_generator.gui import QApplication, QClipboard
         clipboard = QApplication.clipboard()
         clipboard.setText(password)
-        
+
         QMessageBox.information(self, "Copied", "Password copied to clipboard.")
-    
+
     def _show_entry_details(self):
         """Show detailed view of selected entry."""
-        row = self._get_selected_index()
+        row = self._resolve_single_action_row()
         if row < 0:
-            QMessageBox.warning(self, "No Selection", "Please select a password entry.")
             return
-        
-        # Get the entry from filtered results
-        search = self.search_edit.text().lower()
-        strength_filter = self.strength_filter.currentText()
-        
-        filtered = []
-        for entry in self._generator.history:
-            meta = entry.get("metadata", {})
-            if search:
-                service = meta.get("service", "").lower()
-                notes = meta.get("notes", "").lower()
-                if search not in service and search not in notes:
-                    continue
-            if strength_filter != "All":
-                if meta.get("strength") != strength_filter:
-                    continue
-            filtered.append(entry)
-        
-        if row >= len(filtered):
-            return
-        
-        entry = filtered[row]
-        dialog = EntryDetailDialog(entry, self)
-        dialog.exec()
-    
+        self._show_entry_details_for_row(row)
+
     def _delete_selected(self):
-        """Delete the selected entry."""
-        row = self._get_selected_index()
-        if row < 0:
-            QMessageBox.warning(self, "No Selection", "Please select a password entry.")
+        """Delete checked entries (batch) or one selected row."""
+        checked_rows = self._checked_rows()
+        if checked_rows:
+            indices = sorted(
+                {
+                    self._history_index_for_row(r)
+                    for r in checked_rows
+                    if self._history_index_for_row(r) is not None
+                },
+                reverse=True,
+            )
+            if not indices:
+                return
+            n = len(indices)
+            reply = QMessageBox.question(
+                self,
+                "Confirm delete",
+                f"Delete {n} password entr{'y' if n == 1 else 'ies'}?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+            for idx in indices:
+                self._generator.delete_from_history(idx)
+            self._load_history()
+            QMessageBox.information(self, "Deleted", "Selected entries removed.")
             return
-        
-        service_item = self.history_table.item(row, 0)
-        service = service_item.text()
-        
+
+        row = self._resolve_single_action_row()
+        if row < 0:
+            return
+
+        service_item = self.history_table.item(row, COL_SERVICE)
+        service = service_item.text() if service_item else "entry"
+        hist_idx = self._history_index_for_row(row)
+        if hist_idx is None:
+            return
+
         reply = QMessageBox.question(
             self,
-            "Confirm Delete",
+            "Confirm delete",
             f"Delete password for '{service}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
-        
         if reply == QMessageBox.StandardButton.Yes:
-            # Find the actual index in the full history
-            search = self.search_edit.text().lower()
-            strength_filter = self.strength_filter.currentText()
-            
-            filtered_indices = []
-            for i, entry in enumerate(self._generator.history):
-                meta = entry.get("metadata", {})
-                if search:
-                    service = meta.get("service", "").lower()
-                    notes = meta.get("notes", "").lower()
-                    if search not in service and search not in notes:
-                        continue
-                if strength_filter != "All":
-                    if meta.get("strength") != strength_filter:
-                        continue
-                filtered_indices.append(i)
-            
-            if row < len(filtered_indices):
-                actual_index = filtered_indices[row]
-                if self._generator.delete_from_history(actual_index):
-                    self._load_history()
-                    QMessageBox.information(self, "Deleted", "Entry deleted successfully.")
+            if self._generator.delete_from_history(hist_idx):
+                self._load_history()
+                QMessageBox.information(self, "Deleted", "Entry deleted successfully.")
     
     def _export_history(self, format: str):
         """Export history to file."""
@@ -365,6 +429,13 @@ class HistoryWindow(QWidget):
                 QMessageBox.warning(self, "Export Failed", "Failed to export history.")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Export failed: {e}")
+
+    def refresh_theme_styles(self) -> None:
+        """Reapply theme-dependent inline styles (e.g. after global theme change)."""
+        self.stats_label.setStyleSheet(
+            f"color: {theme_manager.get_color('text_secondary')};"
+        )
+        self._populate_table(self._filtered_pairs())
     
     def refresh(self):
         """Refresh the history display."""

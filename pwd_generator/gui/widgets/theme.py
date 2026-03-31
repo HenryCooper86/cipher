@@ -1,125 +1,119 @@
 """
-Theme Manager for Horizon Password Generator GUI
+Theme Manager for Horizon Password Manager GUI
 
-Supports Dark and Light themes with modern styling.
+Supports dark and light themes with calibrated sRGB-friendly palettes.
 """
 
 from pwd_generator.gui import (
-    QColor, QPalette, QFont, QBrush, QPen, 
-    Qt, QApplication
+    QColor, QPalette, QFont, QBrush, QPen,
+    Qt, QApplication,
 )
-from typing import Dict, Any
-import json
-from pathlib import Path
+from typing import Callable, Dict, List
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ThemeColors:
     """Color definitions for themes."""
     
     DARK = {
-        # Background colors
-        "background_primary": "#1e1e2e",
-        "background_secondary": "#2d2d3d",
-        "background_tertiary": "#3d3d4d",
-        "background_input": "#2d2d3d",
-        
-        # Text colors
-        "text_primary": "#e0e0e0",
-        "text_secondary": "#a0a0a0",
-        "text_disabled": "#606060",
+        # Surfaces (slightly lifted contrast vs prior flat navy)
+        "background_primary": "#12131c",
+        "background_secondary": "#1b1d2a",
+        "background_tertiary": "#252838",
+        "background_input": "#1e2233",
+        # Text
+        "text_primary": "#c8d3f5",
+        "text_secondary": "#a9b4d6",
+        "text_disabled": "#565f89",
         "text_link": "#7aa2f7",
-        
-        # Accent colors
+        # Accents
         "accent_primary": "#7aa2f7",
         "accent_secondary": "#9ece6a",
         "accent_warning": "#e0af68",
         "accent_danger": "#f7768e",
         "accent_success": "#9ece6a",
-        
-        # Strength meter colors
+        # Strength meter
         "strength_weak": "#f7768e",
         "strength_fair": "#e0af68",
         "strength_good": "#7dcfff",
         "strength_strong": "#9ece6a",
         "strength_very_strong": "#73daca",
-        
-        # Border colors
-        "border_primary": "#3d3d4d",
+        "strength_badge_text": "#ffffff",
+        # Borders
+        "border_primary": "#434a66",
         "border_focus": "#7aa2f7",
-        "border_hover": "#5d5d6d",
-        
-        # Selection
+        "border_hover": "#5a6288",
+        # Selection (menus / native)
         "selection_bg": "#7aa2f7",
-        "selection_text": "#1e1e2e",
-        
+        "selection_text": "#16161e",
         # Scrollbar
-        "scrollbar_bg": "#2d2d3d",
-        "scrollbar_handle": "#4d4d5d",
-        
-        # Button
-        "button_bg": "#3d3d4d",
-        "button_hover": "#4d4d5d",
-        "button_pressed": "#5d5d6d",
-        "button_text": "#e0e0e0",
-        
-        # Table/List
-        "table_header_bg": "#2d2d3d",
-        "table_header_text": "#e0e0e0",
-        "table_row_alt": "#252535",
-        "table_row_selected": "#3d3d5d",
+        "scrollbar_bg": "#1b1d2a",
+        "scrollbar_handle": "#4a5270",
+        # Buttons
+        "button_bg": "#2a2f45",
+        "button_hover": "#363c58",
+        "button_pressed": "#424a6a",
+        "button_text": "#c8d3f5",
+        # Tables / lists
+        "table_header_bg": "#1b1d2a",
+        "table_header_text": "#c8d3f5",
+        "table_row_alt": "#222536",
+        "table_row_selected": "#304069",
+        "table_row_selected_text": "#e8eeff",
+        # Checkbox frame (unchecked must read on table + input surfaces)
+        "checkbox_unchecked_bg": "#2c334d",
+        "checkbox_unchecked_border": "#8b97c4",
+        "checkbox_unchecked_hover_bg": "#383f5c",
+        # Checkbox checked PNG (high contrast on dark)
+        "checkbox_checked_bg": "#3e4f7d",
+        "checkbox_checked_border": "#b8ceff",
+        "checkbox_tick": "#ffffff",
     }
     
     LIGHT = {
-        # Background colors
-        "background_primary": "#fafafa",
+        "background_primary": "#f5f6f8",
         "background_secondary": "#ffffff",
-        "background_tertiary": "#f0f0f0",
+        "background_tertiary": "#eceef2",
         "background_input": "#ffffff",
-        
-        # Text colors
-        "text_primary": "#1a1a2e",
-        "text_secondary": "#4a4a5a",
-        "text_disabled": "#a0a0a0",
-        "text_link": "#3a6ea5",
-        
-        # Accent colors
-        "accent_primary": "#3a6ea5",
-        "accent_secondary": "#4caf50",
-        "accent_warning": "#ff9800",
-        "accent_danger": "#f44336",
-        "accent_success": "#4caf50",
-        
-        # Strength meter colors
-        "strength_weak": "#f44336",
-        "strength_fair": "#ff9800",
-        "strength_good": "#2196f3",
-        "strength_strong": "#4caf50",
-        "strength_very_strong": "#00bcd4",
-        
-        # Border colors
-        "border_primary": "#e0e0e0",
-        "border_focus": "#3a6ea5",
-        "border_hover": "#c0c0c0",
-        
-        # Selection
-        "selection_bg": "#3a6ea5",
+        "text_primary": "#1a1d26",
+        "text_secondary": "#5c6370",
+        "text_disabled": "#9aa0a8",
+        "text_link": "#2d5a8c",
+        "accent_primary": "#3b6ea8",
+        "accent_secondary": "#3d8b40",
+        "accent_warning": "#d97706",
+        "accent_danger": "#d32f2f",
+        "accent_success": "#2e7d32",
+        "strength_weak": "#c62828",
+        "strength_fair": "#e65100",
+        "strength_good": "#1565c0",
+        "strength_strong": "#2e7d32",
+        "strength_very_strong": "#00838f",
+        "strength_badge_text": "#ffffff",
+        "border_primary": "#d1d5db",
+        "border_focus": "#3b6ea8",
+        "border_hover": "#b8bec8",
+        "selection_bg": "#3b6ea8",
         "selection_text": "#ffffff",
-        
-        # Scrollbar
-        "scrollbar_bg": "#f0f0f0",
-        "scrollbar_handle": "#c0c0c0",
-        
-        # Button
-        "button_bg": "#e0e0e0",
-        "button_hover": "#d0d0d0",
-        "button_pressed": "#c0c0c0",
-        "button_text": "#1a1a2e",
-        
-        # Table/List
-        "table_header_bg": "#f0f0f0",
-        "table_header_text": "#1a1a2e",
-        "table_row_alt": "#fafafa",
-        "table_row_selected": "#e0e8f0",
+        "scrollbar_bg": "#eceef2",
+        "scrollbar_handle": "#c5cad3",
+        "button_bg": "#eceef2",
+        "button_hover": "#e2e5ea",
+        "button_pressed": "#d6dae0",
+        "button_text": "#1a1d26",
+        "table_header_bg": "#eceef2",
+        "table_header_text": "#1a1d26",
+        "table_row_alt": "#f9fafb",
+        "table_row_selected": "#c5daf5",
+        "table_row_selected_text": "#142033",
+        "checkbox_unchecked_bg": "#ffffff",
+        "checkbox_unchecked_border": "#9aa3b2",
+        "checkbox_unchecked_hover_bg": "#f0f2f5",
+        "checkbox_checked_bg": "#ffffff",
+        "checkbox_checked_border": "#3b6ea8",
+        "checkbox_tick": "#1a3d6e",
     }
 
 
@@ -138,6 +132,7 @@ class ThemeManager:
         if not hasattr(self, '_initialized'):
             self._initialized = True
             self._colors = ThemeColors.DARK if self._current_theme == "dark" else ThemeColors.LIGHT
+            self._theme_listeners: List[Callable[[], None]] = []
     
     @classmethod
     def get_instance(cls):
@@ -169,16 +164,33 @@ class ThemeManager:
     def get_color(self, name: str) -> str:
         """Get a color value by name."""
         return self._colors.get(name, "#000000")
+
+    def register_theme_listener(self, callback: Callable[[], None]) -> None:
+        """Register a callable invoked after each successful apply_theme (e.g. refresh inline styles)."""
+        if callback not in self._theme_listeners:
+            self._theme_listeners.append(callback)
     
     def get_style_sheet(self) -> str:
         """Generate the complete application stylesheet."""
         c = self._colors
-        
+        from pwd_generator.gui import icons
+
+        cb_checked = icons.checkbox_indicator_checked_qss_image(
+            self._current_theme, c
+        )
+        rb_checked = icons.radio_indicator_checked_url(self._current_theme, c)
+        combo_arrow = icons.combobox_down_arrow_qss_image(c)
+
         return f"""
             /* Global Styles */
             QWidget {{
                 font-family: 'Segoe UI', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
                 font-size: 13px;
+            }}
+            
+            QWidget#historyCheckboxHost {{
+                background-color: {c['background_tertiary']};
+                border-radius: 6px;
             }}
             
             QMainWindow, QDialog {{
@@ -327,23 +339,25 @@ class ThemeManager:
             
             QComboBox::drop-down {{
                 border: none;
-                width: 30px;
+                width: 28px;
             }}
             
             QComboBox::down-arrow {{
-                image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 5px solid {c['text_primary']};
-                margin-right: 10px;
+                width: 12px;
+                height: 8px;
+                border: none;
+                image: {combo_arrow if combo_arrow else "none"};
+                subcontrol-origin: padding;
+                subcontrol-position: center right;
+                margin-right: 8px;
             }}
             
             QComboBox QAbstractItemView {{
                 background-color: {c['background_secondary']};
                 color: {c['text_primary']};
                 border: 1px solid {c['border_primary']};
-                selection-background-color: {c['accent_primary']};
-                selection-color: white;
+                selection-background-color: {c['table_row_selected']};
+                selection-color: {c['table_row_selected_text']};
             }}
             
             /* SpinBox */
@@ -368,18 +382,59 @@ class ThemeManager:
             QCheckBox::indicator {{
                 width: 18px;
                 height: 18px;
-                border: 2px solid {c['border_primary']};
-                border-radius: 4px;
-                background-color: {c['background_input']};
+                subcontrol-origin: padding;
+                subcontrol-position: center center;
             }}
             
-            QCheckBox::indicator:hover {{
+            QCheckBox::indicator:unchecked {{
+                border: 2px solid {c['checkbox_unchecked_border']};
+                border-radius: 4px;
+                background-color: {c['checkbox_unchecked_bg']};
+            }}
+            
+            QCheckBox::indicator:unchecked:hover {{
                 border-color: {c['border_hover']};
+                background-color: {c['checkbox_unchecked_hover_bg']};
+            }}
+            
+            QCheckBox::indicator:unchecked:focus {{
+                border: 2px solid {c['border_focus']};
+                background-color: {c['checkbox_unchecked_bg']};
+            }}
+            
+            QCheckBox::indicator:unchecked:pressed {{
+                border-color: {c['border_focus']};
+                background-color: {c['background_tertiary']};
             }}
             
             QCheckBox::indicator:checked {{
-                background-color: {c['accent_primary']};
-                border-color: {c['accent_primary']};
+                width: 18px;
+                height: 18px;
+                border: 2px solid transparent;
+                border-radius: 4px;
+                background-color: {c['checkbox_checked_bg']};
+                image: {cb_checked};
+            }}
+            
+            QCheckBox::indicator:checked:hover {{
+                border: 2px solid {c['border_hover']};
+                border-radius: 4px;
+                background-color: {c['checkbox_checked_bg']};
+                image: {cb_checked};
+            }}
+            
+            QCheckBox::indicator:checked:focus {{
+                border: 2px solid {c['border_focus']};
+                border-radius: 4px;
+                background-color: {c['checkbox_checked_bg']};
+                image: {cb_checked};
+            }}
+            
+            QCheckBox::indicator:checked:pressed {{
+                border: 2px solid {c['border_focus']};
+                border-radius: 4px;
+                background-color: {c['checkbox_checked_bg']};
+                image: {cb_checked};
             }}
             
             /* RadioButton */
@@ -401,8 +456,10 @@ class ThemeManager:
             }}
             
             QRadioButton::indicator:checked {{
-                background-color: {c['accent_primary']};
-                border-color: {c['accent_primary']};
+                width: 18px;
+                height: 18px;
+                border: none;
+                image: url("{rb_checked}");
             }}
             
             /* GroupBox */
@@ -504,6 +561,20 @@ class ThemeManager:
             
             QTableWidget::item:selected {{
                 background-color: {c['table_row_selected']};
+                color: {c['table_row_selected_text']};
+            }}
+            
+            QTableWidget::item:selected:active {{
+                background-color: {c['table_row_selected']};
+                color: {c['table_row_selected_text']};
+            }}
+            
+            QTableCornerButton::section {{
+                background-color: {c['table_header_bg']};
+                border: none;
+                border-bottom: 1px solid {c['border_primary']};
+                border-right: 1px solid {c['border_primary']};
+                padding: 8px;
             }}
             
             QHeaderView::section {{
@@ -581,6 +652,7 @@ class ThemeManager:
             
             QMenuBar::item:selected {{
                 background-color: {c['accent_primary']};
+                color: {c['selection_text']};
             }}
             
             QMenu {{
@@ -595,6 +667,7 @@ class ThemeManager:
             
             QMenu::item:selected {{
                 background-color: {c['accent_primary']};
+                color: {c['selection_text']};
             }}
             
             QMenu::separator {{
@@ -645,8 +718,8 @@ class ThemeManager:
             }}
             
             QListWidget::item:selected {{
-                background-color: {c['accent_primary']};
-                color: white;
+                background-color: {c['table_row_selected']};
+                color: {c['table_row_selected_text']};
             }}
             
             QListWidget::item:hover:!selected {{
@@ -671,12 +744,20 @@ class ThemeManager:
         palette.setColor(QPalette.ColorRole.Text, QColor(c['text_primary']))
         palette.setColor(QPalette.ColorRole.Button, QColor(c['button_bg']))
         palette.setColor(QPalette.ColorRole.ButtonText, QColor(c['button_text']))
-        palette.setColor(QPalette.ColorRole.Highlight, QColor(c['accent_primary']))
-        palette.setColor(QPalette.ColorRole.HighlightedText, QColor('#ffffff'))
+        palette.setColor(QPalette.ColorRole.Highlight, QColor(c['table_row_selected']))
+        palette.setColor(
+            QPalette.ColorRole.HighlightedText, QColor(c['table_row_selected_text'])
+        )
         palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor(c['text_disabled']))
         palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor(c['text_disabled']))
         
         app.setPalette(palette)
+
+        for cb in self._theme_listeners:
+            try:
+                cb()
+            except Exception:
+                logger.exception("Theme listener callback failed")
 
 
 # Singleton instance

@@ -7,6 +7,7 @@ Reusable UI components for the Horizon Password Generator.
 from pwd_generator.gui.widgets.theme import ThemeManager, theme_manager
 from pwd_generator.gui.widgets.strength_meter import StrengthMeter, StrengthIndicator
 from pwd_generator.gui.widgets.password_display import PasswordDisplay, PasswordEditor
+from pwd_generator.gui.widgets.tick_checkbox import TickCheckBox
 
 __all__ = [
     "ThemeManager",
@@ -15,4 +16,5 @@ __all__ = [
     "StrengthIndicator",
     "PasswordDisplay",
     "PasswordEditor",
+    "TickCheckBox",
 ]
