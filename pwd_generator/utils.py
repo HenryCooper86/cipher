@@ -56,7 +56,7 @@ def copy_to_clipboard(text: str) -> bool:
                 process = subprocess.Popen(
                     [cmd_path], stdin=subprocess.PIPE, close_fds=True
                 )  # nosec B603
-                process.communicate(text.encode("utf-8"))
+                process.communicate(text.encode("utf-8"), timeout=5)
                 logger.info("Copied to clipboard using pbcopy")
                 return True
         elif sys.platform == "linux":
@@ -68,7 +68,7 @@ def copy_to_clipboard(text: str) -> bool:
                         stdin=subprocess.PIPE,
                         close_fds=True,
                     )  # nosec B603
-                    process.communicate(text.encode("utf-8"))
+                    process.communicate(text.encode("utf-8"), timeout=5)
                     logger.info("Copied to clipboard using xclip")
                     return True
                 except FileNotFoundError:
@@ -80,7 +80,7 @@ def copy_to_clipboard(text: str) -> bool:
                     process = subprocess.Popen(
                         [cmd_path], stdin=subprocess.PIPE, close_fds=True
                     )  # nosec B603
-                    process.communicate(text.encode("utf-8"))
+                    process.communicate(text.encode("utf-8"), timeout=5)
                     logger.info("Copied to clipboard using clip")
                     return True
                 except Exception as e:

@@ -3,6 +3,7 @@ import string
 import logging
 import re
 from typing import List, Optional, Tuple
+from pwd_generator.constants import SPECIAL_CHARS
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,7 @@ class PatternGenerator:
         self.nouns = ["apple", "book", "car", "door", "eagle", "fish", "gate", "house", "ice", "jacket"]
         self.verbs = ["run", "jump", "walk", "sing", "dance", "write", "read", "play", "work", "think"]
         self.adjectives = ["big", "small", "fast", "slow", "bright", "dark", "happy", "sad", "new", "old"]
-        self.special_chars = "@#$!?^&*~()[]=-_."
+        self.special_chars = SPECIAL_CHARS
     
     def generate_from_pattern(self, pattern: str) -> str:
         """
@@ -81,8 +82,6 @@ class PatternGenerator:
             return secrets.choice(string.ascii_lowercase)
         elif token_lower == 'number':
             return secrets.choice(string.digits)
-        elif token_lower == 'special':
-            return secrets.choice(self.special_chars)
         else:
             return f'[{token}]'
     

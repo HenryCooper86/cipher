@@ -3,12 +3,19 @@ import os
 import secrets
 import base64
 import logging
+import warnings
 from typing import List, Dict, Optional, Union
 from pathlib import Path
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from pwd_generator.exceptions import EncryptionError, ValidationError
+from pwd_generator.exceptions import (
+    EncryptionError, 
+    ValidationError, 
+    FileOperationError,
+    AuthenticationError,
+    HistoryError
+)
 from pwd_generator.constants import (
     KDF_ITERATIONS,
     SALT_SIZE,
@@ -21,6 +28,8 @@ from pwd_generator.constants import (
 
 logger = logging.getLogger(__name__)
 
+# Optional: install the `argon2-cffi` package (extra `argon2` in pyproject.toml) to
+# enable Argon2-based KDF when creating new vault material. Default storage uses PBKDF2.
 ARGON2_AVAILABLE = False
 try:
     from argon2 import low_level
@@ -30,12 +39,58 @@ except ImportError:
     low_level = None
 
 
-def clear_memory(data: Union[bytearray, bytes, str]):
+def clear_memory(data: Union[bytearray, bytes, str]) -> bool:
+    """
+    Attempt to securely clear sensitive data from memory.
+    
+    Args:
+        data: The data to clear. Can be bytearray, bytes, or str.
+        
+    Returns:
+        bool: True if data was successfully cleared, False otherwise.
+        
+    Note:
+        - bytearray: Can be securely cleared in place (returns True)
+        - bytes/str: Are immutable in Python and CANNOT be securely cleared.
+                     For maximum security, always use bytearray for sensitive data.
+                     This function will issue a warning and return False for
+                     immutable types.
+    """
+    if data is None:
+        return True
+        
     if isinstance(data, bytearray):
-        for i in range(len(data)):
-            data[i] = 0
-    elif isinstance(data, (bytes, str)):
-        pass
+        try:
+            for i in range(len(data)):
+                data[i] = 0
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to clear bytearray: {e}")
+            return False
+    elif isinstance(data, bytes):
+        # bytes are immutable - cannot be cleared
+        # Issue warning for security-conscious users
+        warnings.warn(
+            "Cannot securely clear immutable 'bytes' object from memory. "
+            "Use 'bytearray' for sensitive data that needs to be cleared.",
+            UserWarning,
+            stacklevel=2
+        )
+        logger.warning("Attempted to clear immutable bytes object - data remains in memory")
+        return False
+    elif isinstance(data, str):
+        # strings are immutable - cannot be cleared
+        warnings.warn(
+            "Cannot securely clear immutable 'str' object from memory. "
+            "Use 'bytearray' for sensitive data that needs to be cleared.",
+            UserWarning,
+            stacklevel=2
+        )
+        logger.warning("Attempted to clear immutable str object - data remains in memory")
+        return False
+    else:
+        logger.warning(f"Unknown data type for memory clearing: {type(data)}")
+        return False
 
 
 class EncryptionManager:
@@ -123,6 +178,8 @@ class EncryptionManager:
         except (ValueError, TypeError) as e:
             logger.error(f"Invalid encryption parameters: {e}")
             raise EncryptionError(f"Encryption initialization failed: {e}")
+        except SystemExit:
+            raise
         except Exception as e:
             logger.error(f"Failed to initialize encryption: {e}")
             raise EncryptionError(f"Encryption initialization failed: {e}")
@@ -172,6 +229,8 @@ class EncryptionManager:
         except (OSError, IOError) as e:
             logger.error(f"File I/O error loading history: {e}")
             raise EncryptionError(f"Failed to load history: {e}")
+        except SystemExit:
+            raise
         except Exception as e:
             logger.error(f"Unexpected error loading history: {e}")
             raise EncryptionError(f"Failed to load history: {e}")
@@ -179,7 +238,10 @@ class EncryptionManager:
     def save_history(self, history: List[Dict]) -> None:
         if not self.cipher or self.salt is None:
             logger.error("Cannot save history: encryption not initialized")
-            return
+            raise HistoryError(
+                "Cannot save history: encryption system not initialized. "
+                "Please provide a valid master password."
+            )
 
         try:
             payload = json.dumps({"history": history}, indent=2).encode()
@@ -189,6 +251,8 @@ class EncryptionManager:
             temp_file = self.history_file.with_suffix(".tmp")
             with open(temp_file, "wb") as f:
                 f.write(encrypted)
+                f.flush()
+                os.fsync(f.fileno())
 
             os.chmod(temp_file, 0o600)
             temp_file.replace(self.history_file)

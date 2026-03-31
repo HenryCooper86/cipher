@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from pwd_generator.exceptions import ValidationError
-from pwd_generator.constants import DEFAULT_POLICY, WORDLIST
+from pwd_generator.constants import DEFAULT_POLICY, WORDLIST, SPECIAL_CHARS
 from pwd_generator.validation import PasswordValidator
 from pwd_generator.encryption import EncryptionManager
 
@@ -53,7 +53,7 @@ class SecurePasswordGenerator:
         self.uppercase = string.ascii_uppercase
         self.lowercase = string.ascii_lowercase
         self.digits = string.digits
-        self.special_chars = "@#$!?^&*~()[]=-_."
+        self.special_chars = SPECIAL_CHARS
         self.all_chars = (
             self.uppercase + self.lowercase + self.digits + self.special_chars
         )
@@ -126,17 +126,12 @@ class SecurePasswordGenerator:
             from pwd_generator.templates import get_template
 
             template = get_template(self.profile_template)
-            if template and length < template.min_length:
-                logger.warning(
-                    f"Requested length {length} < template minimum {template.min_length}"
-                )
-                length = template.min_length
-
-        if self.profile_template:
-            from pwd_generator.templates import get_template
-
-            template = get_template(self.profile_template)
             if template:
+                if length < template.min_length:
+                    logger.warning(
+                        f"Requested length {length} < template minimum {template.min_length}"
+                    )
+                    length = template.min_length
                 return template.generate(length)
 
         if length < self.policy["min_length"]:
@@ -280,11 +275,17 @@ class SecurePasswordGenerator:
         expiration_days = self.policy["expiration_days"]
 
         for i, entry in enumerate(self.history):
-            created_at = datetime.fromisoformat(entry["metadata"]["created_at"])
-            age = datetime.now() - created_at
+            try:
+                created_at_str = entry.get("metadata", {}).get("created_at")
+                if not created_at_str:
+                    continue
+                created_at = datetime.fromisoformat(created_at_str)
+                age = datetime.now() - created_at
 
-            if age.days > expiration_days:
-                expired.append((i, entry))
+                if age.days > expiration_days:
+                    expired.append((i, entry))
+            except (KeyError, ValueError, TypeError):
+                continue
 
         return expired
 
@@ -314,7 +315,8 @@ class SecurePasswordGenerator:
             if password_type == "random":
                 pwd = self.generate_random_string(length)
             elif password_type == "passphrase":
-                pwd = self.generate_passphrase(5)
+                words = max(4, length // 4)
+                pwd = self.generate_passphrase(words)
             elif password_type == "pin":
                 pwd = self.generate_pin(length if length <= 10 else 6)
             else:

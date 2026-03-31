@@ -24,7 +24,7 @@ def export_passwords_json(
                 entry.update(metadata[i])
             data["passwords"].append(entry)
 
-        with open(filename, "w") as f:
+        with open(filename, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
         logger.info(f"Exported {len(passwords)} passwords to JSON: {filename}")
@@ -41,7 +41,7 @@ def export_passwords_csv(
     passwords: List[str], filename: str, metadata: Optional[List[Dict]] = None
 ) -> bool:
     try:
-        with open(filename, "w", newline="") as f:
+        with open(filename, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(
                 [
@@ -100,7 +100,7 @@ def export_history_json(
                 export_entry["password"] = "***REDACTED***"
             data["entries"].append(export_entry)
 
-        with open(filename, "w") as f:
+        with open(filename, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
         logger.info(f"Exported {len(history)} history entries to JSON: {filename}")
@@ -117,7 +117,7 @@ def export_history_csv(
     history: List[Dict], filename: str, include_passwords: bool = True
 ) -> bool:
     try:
-        with open(filename, "w", newline="") as f:
+        with open(filename, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(
                 ["Service", "Password", "Created", "Strength", "Entropy", "Notes"]

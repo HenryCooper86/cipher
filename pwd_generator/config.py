@@ -43,7 +43,7 @@ def load_config(config_file: Optional[str] = None) -> Dict[str, Any]:
         return {'policy': DEFAULT_POLICY.copy()}
     
     try:
-        with open(config_file, 'r') as f:
+        with open(config_file, 'r', encoding='utf-8') as f:
             if config_file.suffix in ['.yaml', '.yml']:
                 if not _ensure_yaml():
                     logger.error("YAML support not available, install PyYAML")
@@ -65,7 +65,7 @@ def load_config(config_file: Optional[str] = None) -> Dict[str, Any]:
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse JSON config: {e}")
         return {'policy': DEFAULT_POLICY.copy()}
-    except Exception as e:
+    except (OSError, IOError) as e:
         logger.error(f"Failed to load config: {e}")
         return {'policy': DEFAULT_POLICY.copy()}
 
@@ -77,7 +77,7 @@ def save_config(config: Dict[str, Any], config_file: Optional[str] = None) -> bo
         config_file = Path(config_file)
     
     try:
-        with open(config_file, 'w') as f:
+        with open(config_file, 'w', encoding='utf-8') as f:
             if config_file.suffix in ['.yaml', '.yml']:
                 if not _ensure_yaml():
                     logger.error("YAML support not available, install PyYAML")
@@ -88,7 +88,7 @@ def save_config(config: Dict[str, Any], config_file: Optional[str] = None) -> bo
         
         logger.info(f"Saved config to {config_file}")
         return True
-    except Exception as e:
+    except (OSError, IOError, TypeError) as e:
         logger.error(f"Failed to save config: {e}")
         return False
 

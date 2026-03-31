@@ -93,6 +93,12 @@ def validate_file_path(user_path: str, base_dir=None, must_exist: bool = False) 
     if '..' in str(resolved) or resolved != resolved.resolve():
         raise ValueError("Path traversal not allowed")
     
+    # Ensure resolved path (after following symlinks) is still within base_dir
+    try:
+        resolved.resolve(strict=False).relative_to(base_dir.resolve())
+    except ValueError:
+        raise ValueError("Path traversal not allowed")
+    
     # Check if file exists (if required)
     if must_exist and not resolved.exists():
         raise ValueError(f"File does not exist: {user_path}")

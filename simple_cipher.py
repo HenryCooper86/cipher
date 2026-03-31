@@ -5,6 +5,8 @@ import argparse
 import math
 import sys
 
+SPECIAL_CHARS = "@#$!?^&*~()[]=-_."
+
 # --- Configuration & Constants ---
 
 WORDLIST = [
@@ -38,7 +40,7 @@ def calculate_entropy(password):
     if any(c.islower() for c in password): pool_size += 26
     if any(c.isupper() for c in password): pool_size += 26
     if any(c.isdigit() for c in password): pool_size += 10
-    if any(c in string.punctuation for c in password): pool_size += 32
+    if any(c in SPECIAL_CHARS for c in password): pool_size += len(SPECIAL_CHARS)
     
     if pool_size == 0: return 0
     return math.log2(pool_size) * len(password)
@@ -52,17 +54,17 @@ def generate_password(length=16, use_upper=True, use_lower=True, use_digits=True
     if use_upper: chars += string.ascii_uppercase
     if use_lower: chars += string.ascii_lowercase
     if use_digits: chars += string.digits
-    if use_special: chars += string.punctuation
+    if use_special: chars += SPECIAL_CHARS
 
     if not chars:
-        return "Error: No character types selected."
+        raise ValueError("No character types selected.")
 
     # Ensure at least one of each selected type
     password = []
     if use_upper: password.append(secrets.choice(string.ascii_uppercase))
     if use_lower: password.append(secrets.choice(string.ascii_lowercase))
     if use_digits: password.append(secrets.choice(string.digits))
-    if use_special: password.append(secrets.choice(string.punctuation))
+    if use_special: password.append(secrets.choice(SPECIAL_CHARS))
 
     # Fill the rest
     remaining = length - len(password)
@@ -84,7 +86,7 @@ def generate_passphrase(words=4, separator='-'):
         passphrase_words.append(word)
     
     # Add a number and special char for better complexity
-    return separator.join(passphrase_words) + str(secrets.randbelow(100)) + secrets.choice('!@#$%^&*')
+    return separator.join(passphrase_words) + str(secrets.randbelow(100)) + secrets.choice(SPECIAL_CHARS)
 
 def generate_pin(length=6):
     """Generate a secure random PIN."""
@@ -151,17 +153,24 @@ def main():
 
     args = parser.parse_args()
 
-    if args.command == "password":
-        pwd = generate_password(length=args.length, use_special=not args.no_special)
-        print(pwd)
-    elif args.command == "passphrase":
-        pwd = generate_passphrase(words=args.words)
-        print(pwd)
-    elif args.command == "pin":
-        pwd = generate_pin(length=args.length)
-        print(pwd)
-    else:
-        interactive_mode()
+    try:
+        if args.command == "password":
+            pwd = generate_password(length=args.length, use_special=not args.no_special)
+            print(pwd)
+        elif args.command == "passphrase":
+            pwd = generate_passphrase(words=args.words)
+            print(pwd)
+        elif args.command == "pin":
+            pwd = generate_pin(length=args.length)
+            print(pwd)
+        else:
+            interactive_mode()
+    except KeyboardInterrupt:
+        print("\n\nInterrupted. Goodbye!")
+        sys.exit(0)
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
