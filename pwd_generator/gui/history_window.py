@@ -10,12 +10,12 @@ from pwd_generator.gui import (
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
     QMessageBox, QFileDialog, QDialog, QTextEdit, QComboBox,
     QDialogButtonBox, QDateEdit, Qt, QApplication, QClipboard,
-    QSizePolicy, QCheckBox,
+    QSizePolicy, QColor, QBrush,
 )
 from pwd_generator.gui.widgets import theme_manager
+from pwd_generator.gui.widgets.tick_checkbox import TickCheckBox
 from pwd_generator import SecurePasswordGenerator
 from pwd_generator.exceptions import HistoryError, EncryptionError
-from pwd_generator.gui.widgets.strength_meter import StrengthIndicator
 from datetime import datetime
 from pathlib import Path
 
@@ -197,10 +197,12 @@ class HistoryWindow(QWidget):
             meta = entry.get("metadata", {})
 
             box_host = QWidget()
+            box_host.setObjectName("historyCheckboxHost")
+            box_host.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             hl = QHBoxLayout(box_host)
             hl.setContentsMargins(4, 2, 4, 2)
             hl.addStretch()
-            cb = QCheckBox()
+            cb = TickCheckBox()
             cb.setToolTip("Select this entry")
             hl.addWidget(cb)
             hl.addStretch()
@@ -227,8 +229,11 @@ class HistoryWindow(QWidget):
                 "Very Strong": theme_manager.get_color("strength_very_strong"),
             }
             if strength in strength_colors:
-                strength_item.setForeground(Qt.GlobalColor.white)
-                strength_item.setBackground(Qt.GlobalColor.darkGray)
+                hex_bg = strength_colors[strength]
+                strength_item.setBackground(QBrush(QColor(hex_bg)))
+                strength_item.setForeground(
+                    QBrush(QColor(theme_manager.get_color("strength_badge_text")))
+                )
             self.history_table.setItem(row, COL_STRENGTH, strength_item)
 
             entropy = meta.get("entropy", 0)
@@ -256,7 +261,7 @@ class HistoryWindow(QWidget):
         host = self.history_table.cellWidget(row, COL_SELECT)
         if host is None:
             return None
-        return host.findChild(QCheckBox)
+        return host.findChild(TickCheckBox)
 
     def _checked_rows(self) -> list:
         rows = []
@@ -424,6 +429,13 @@ class HistoryWindow(QWidget):
                 QMessageBox.warning(self, "Export Failed", "Failed to export history.")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Export failed: {e}")
+
+    def refresh_theme_styles(self) -> None:
+        """Reapply theme-dependent inline styles (e.g. after global theme change)."""
+        self.stats_label.setStyleSheet(
+            f"color: {theme_manager.get_color('text_secondary')};"
+        )
+        self._populate_table(self._filtered_pairs())
     
     def refresh(self):
         """Refresh the history display."""

@@ -94,9 +94,11 @@ class SettingsWindow(QWidget):
         theme_row.addStretch()
         theme_layout.addLayout(theme_row)
         
-        theme_preview = QLabel("Changes will apply immediately")
-        theme_preview.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')}; font-style: italic;")
-        theme_layout.addWidget(theme_preview)
+        self._theme_preview_label = QLabel("Changes will apply immediately")
+        self._theme_preview_label.setStyleSheet(
+            f"color: {theme_manager.get_color('text_secondary')}; font-style: italic;"
+        )
+        theme_layout.addWidget(self._theme_preview_label)
         
         layout.addWidget(theme_group)
         
@@ -368,6 +370,19 @@ class SettingsWindow(QWidget):
         else:
             QMessageBox.warning(self, "Error", "Failed to save profile.")
     
+    def refresh_theme_styles(self) -> None:
+        """Reapply theme-dependent inline styles after global theme change."""
+        self._theme_preview_label.setStyleSheet(
+            f"color: {theme_manager.get_color('text_secondary')}; font-style: italic;"
+        )
+        self.theme_combo.blockSignals(True)
+        try:
+            self.theme_combo.setCurrentIndex(
+                0 if theme_manager.current_theme == "dark" else 1
+            )
+        finally:
+            self.theme_combo.blockSignals(False)
+
     def _on_theme_changed(self, index: int):
         """Handle theme change."""
         theme_name = "dark" if index == 0 else "light"

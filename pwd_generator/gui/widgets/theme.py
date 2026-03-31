@@ -5,26 +5,27 @@ Supports dark and light themes with calibrated sRGB-friendly palettes.
 """
 
 from pwd_generator.gui import (
-    QColor, QPalette, QFont, QBrush, QPen, 
-    Qt, QApplication
+    QColor, QPalette, QFont, QBrush, QPen,
+    Qt, QApplication,
 )
-from typing import Dict, Any
-import json
-from pathlib import Path
+from typing import Callable, Dict, List
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ThemeColors:
     """Color definitions for themes."""
     
     DARK = {
-        # Surfaces (cool neutral, consistent luminance steps)
-        "background_primary": "#16161e",
-        "background_secondary": "#1a1b26",
-        "background_tertiary": "#24283b",
-        "background_input": "#1a1b26",
+        # Surfaces (slightly lifted contrast vs prior flat navy)
+        "background_primary": "#12131c",
+        "background_secondary": "#1b1d2a",
+        "background_tertiary": "#252838",
+        "background_input": "#1e2233",
         # Text
-        "text_primary": "#c0caf5",
-        "text_secondary": "#a9b1d6",
+        "text_primary": "#c8d3f5",
+        "text_secondary": "#a9b4d6",
         "text_disabled": "#565f89",
         "text_link": "#7aa2f7",
         # Accents
@@ -39,27 +40,36 @@ class ThemeColors:
         "strength_good": "#7dcfff",
         "strength_strong": "#9ece6a",
         "strength_very_strong": "#73daca",
+        "strength_badge_text": "#ffffff",
         # Borders
-        "border_primary": "#3b4261",
+        "border_primary": "#434a66",
         "border_focus": "#7aa2f7",
-        "border_hover": "#565f89",
+        "border_hover": "#5a6288",
         # Selection (menus / native)
         "selection_bg": "#7aa2f7",
         "selection_text": "#16161e",
         # Scrollbar
-        "scrollbar_bg": "#1a1b26",
-        "scrollbar_handle": "#414868",
+        "scrollbar_bg": "#1b1d2a",
+        "scrollbar_handle": "#4a5270",
         # Buttons
-        "button_bg": "#292e42",
-        "button_hover": "#343b54",
-        "button_pressed": "#3d4469",
-        "button_text": "#c0caf5",
+        "button_bg": "#2a2f45",
+        "button_hover": "#363c58",
+        "button_pressed": "#424a6a",
+        "button_text": "#c8d3f5",
         # Tables / lists
-        "table_header_bg": "#1a1b26",
-        "table_header_text": "#c0caf5",
-        "table_row_alt": "#1f2335",
-        "table_row_selected": "#283457",
-        "table_row_selected_text": "#c7d9ff",
+        "table_header_bg": "#1b1d2a",
+        "table_header_text": "#c8d3f5",
+        "table_row_alt": "#222536",
+        "table_row_selected": "#304069",
+        "table_row_selected_text": "#e8eeff",
+        # Checkbox frame (unchecked must read on table + input surfaces)
+        "checkbox_unchecked_bg": "#2c334d",
+        "checkbox_unchecked_border": "#8b97c4",
+        "checkbox_unchecked_hover_bg": "#383f5c",
+        # Checkbox checked PNG (high contrast on dark)
+        "checkbox_checked_bg": "#3e4f7d",
+        "checkbox_checked_border": "#b8ceff",
+        "checkbox_tick": "#ffffff",
     }
     
     LIGHT = {
@@ -81,6 +91,7 @@ class ThemeColors:
         "strength_good": "#1565c0",
         "strength_strong": "#2e7d32",
         "strength_very_strong": "#00838f",
+        "strength_badge_text": "#ffffff",
         "border_primary": "#d1d5db",
         "border_focus": "#3b6ea8",
         "border_hover": "#b8bec8",
@@ -97,6 +108,12 @@ class ThemeColors:
         "table_row_alt": "#f9fafb",
         "table_row_selected": "#c5daf5",
         "table_row_selected_text": "#142033",
+        "checkbox_unchecked_bg": "#ffffff",
+        "checkbox_unchecked_border": "#9aa3b2",
+        "checkbox_unchecked_hover_bg": "#f0f2f5",
+        "checkbox_checked_bg": "#ffffff",
+        "checkbox_checked_border": "#3b6ea8",
+        "checkbox_tick": "#1a3d6e",
     }
 
 
@@ -115,6 +132,7 @@ class ThemeManager:
         if not hasattr(self, '_initialized'):
             self._initialized = True
             self._colors = ThemeColors.DARK if self._current_theme == "dark" else ThemeColors.LIGHT
+            self._theme_listeners: List[Callable[[], None]] = []
     
     @classmethod
     def get_instance(cls):
@@ -146,20 +164,33 @@ class ThemeManager:
     def get_color(self, name: str) -> str:
         """Get a color value by name."""
         return self._colors.get(name, "#000000")
+
+    def register_theme_listener(self, callback: Callable[[], None]) -> None:
+        """Register a callable invoked after each successful apply_theme (e.g. refresh inline styles)."""
+        if callback not in self._theme_listeners:
+            self._theme_listeners.append(callback)
     
     def get_style_sheet(self) -> str:
         """Generate the complete application stylesheet."""
         c = self._colors
         from pwd_generator.gui import icons
 
-        cb_checked = icons.checkbox_indicator_checked_url(self._current_theme, c)
+        cb_checked = icons.checkbox_indicator_checked_qss_image(
+            self._current_theme, c
+        )
         rb_checked = icons.radio_indicator_checked_url(self._current_theme, c)
+        combo_arrow = icons.combobox_down_arrow_qss_image(c)
 
         return f"""
             /* Global Styles */
             QWidget {{
                 font-family: 'Segoe UI', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
                 font-size: 13px;
+            }}
+            
+            QWidget#historyCheckboxHost {{
+                background-color: {c['background_tertiary']};
+                border-radius: 6px;
             }}
             
             QMainWindow, QDialog {{
@@ -308,15 +339,17 @@ class ThemeManager:
             
             QComboBox::drop-down {{
                 border: none;
-                width: 30px;
+                width: 28px;
             }}
             
             QComboBox::down-arrow {{
-                image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 5px solid {c['text_primary']};
-                margin-right: 10px;
+                width: 12px;
+                height: 8px;
+                border: none;
+                image: {combo_arrow if combo_arrow else "none"};
+                subcontrol-origin: padding;
+                subcontrol-position: center right;
+                margin-right: 8px;
             }}
             
             QComboBox QAbstractItemView {{
@@ -349,23 +382,59 @@ class ThemeManager:
             QCheckBox::indicator {{
                 width: 18px;
                 height: 18px;
+                subcontrol-origin: padding;
+                subcontrol-position: center center;
             }}
             
             QCheckBox::indicator:unchecked {{
-                border: 2px solid {c['border_primary']};
+                border: 2px solid {c['checkbox_unchecked_border']};
                 border-radius: 4px;
-                background-color: {c['background_input']};
+                background-color: {c['checkbox_unchecked_bg']};
             }}
             
             QCheckBox::indicator:unchecked:hover {{
                 border-color: {c['border_hover']};
+                background-color: {c['checkbox_unchecked_hover_bg']};
+            }}
+            
+            QCheckBox::indicator:unchecked:focus {{
+                border: 2px solid {c['border_focus']};
+                background-color: {c['checkbox_unchecked_bg']};
+            }}
+            
+            QCheckBox::indicator:unchecked:pressed {{
+                border-color: {c['border_focus']};
+                background-color: {c['background_tertiary']};
             }}
             
             QCheckBox::indicator:checked {{
                 width: 18px;
                 height: 18px;
-                border: none;
-                image: url("{cb_checked}");
+                border: 2px solid transparent;
+                border-radius: 4px;
+                background-color: {c['checkbox_checked_bg']};
+                image: {cb_checked};
+            }}
+            
+            QCheckBox::indicator:checked:hover {{
+                border: 2px solid {c['border_hover']};
+                border-radius: 4px;
+                background-color: {c['checkbox_checked_bg']};
+                image: {cb_checked};
+            }}
+            
+            QCheckBox::indicator:checked:focus {{
+                border: 2px solid {c['border_focus']};
+                border-radius: 4px;
+                background-color: {c['checkbox_checked_bg']};
+                image: {cb_checked};
+            }}
+            
+            QCheckBox::indicator:checked:pressed {{
+                border: 2px solid {c['border_focus']};
+                border-radius: 4px;
+                background-color: {c['checkbox_checked_bg']};
+                image: {cb_checked};
             }}
             
             /* RadioButton */
@@ -500,6 +569,14 @@ class ThemeManager:
                 color: {c['table_row_selected_text']};
             }}
             
+            QTableCornerButton::section {{
+                background-color: {c['table_header_bg']};
+                border: none;
+                border-bottom: 1px solid {c['border_primary']};
+                border-right: 1px solid {c['border_primary']};
+                padding: 8px;
+            }}
+            
             QHeaderView::section {{
                 background-color: {c['table_header_bg']};
                 color: {c['table_header_text']};
@@ -575,6 +652,7 @@ class ThemeManager:
             
             QMenuBar::item:selected {{
                 background-color: {c['accent_primary']};
+                color: {c['selection_text']};
             }}
             
             QMenu {{
@@ -589,6 +667,7 @@ class ThemeManager:
             
             QMenu::item:selected {{
                 background-color: {c['accent_primary']};
+                color: {c['selection_text']};
             }}
             
             QMenu::separator {{
@@ -673,6 +752,12 @@ class ThemeManager:
         palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor(c['text_disabled']))
         
         app.setPalette(palette)
+
+        for cb in self._theme_listeners:
+            try:
+                cb()
+            except Exception:
+                logger.exception("Theme listener callback failed")
 
 
 # Singleton instance

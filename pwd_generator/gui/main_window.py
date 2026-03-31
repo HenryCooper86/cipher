@@ -168,6 +168,8 @@ class MainWindow(QMainWindow):
         self._main_splitter.setSizes([224, 876])
 
         outer.addWidget(self._main_splitter)
+
+        theme_manager.register_theme_listener(self._on_theme_applied)
     
     def _create_sidebar(self) -> QWidget:
         """Create the navigation sidebar."""
@@ -234,12 +236,12 @@ class MainWindow(QMainWindow):
         self.theme_btn.clicked.connect(self._toggle_theme)
         layout.addWidget(self.theme_btn)
 
-        version = QLabel("v1.0.0")
-        version.setStyleSheet(
+        self._sidebar_version_label = QLabel("v1.0.0")
+        self._sidebar_version_label.setStyleSheet(
             f"color: {theme_manager.get_color('text_secondary')}; font-size: 11px;"
         )
-        version.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(version)
+        self._sidebar_version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self._sidebar_version_label)
 
         self._apply_sidebar_chrome()
         return sidebar
@@ -394,6 +396,19 @@ class MainWindow(QMainWindow):
         else:
             self.theme_btn.setText("Switch to dark theme")
 
+    def _on_theme_applied(self) -> None:
+        self._apply_sidebar_chrome()
+        self._sync_theme_button_label()
+        if getattr(self, "_generator", None) and hasattr(self, "generator_view"):
+            self.generator_view.refresh_theme_styles()
+            self.history_view.refresh_theme_styles()
+            self.settings_view.refresh_theme_styles()
+        version = getattr(self, "_sidebar_version_label", None)
+        if version is not None:
+            version.setStyleSheet(
+                f"color: {theme_manager.get_color('text_secondary')}; font-size: 11px;"
+            )
+
     def _apply_sidebar_chrome(self) -> None:
         if not hasattr(self, "_sidebar"):
             return
@@ -424,9 +439,7 @@ class MainWindow(QMainWindow):
     def _toggle_theme(self):
         """Toggle between dark and light theme."""
         theme_manager.toggle_theme()
-        self._sync_theme_button_label()
         theme_manager.apply_theme(QApplication.instance())
-        self._apply_sidebar_chrome()
     
     def _export_history(self):
         """Export password history."""
@@ -550,14 +563,26 @@ class MainWindow(QMainWindow):
 def run_gui():
     """Run the GUI application."""
     import sys
-    
+
+    try:
+        from PyQt6.QtWidgets import QStyleFactory
+    except ImportError:
+        from PySide6.QtWidgets import QStyleFactory
+
     app = QApplication(sys.argv)
+    fusion = QStyleFactory.create("Fusion")
+    if fusion is not None:
+        app.setStyle(fusion)
     app.setApplicationName("Horizon Password Manager")
     app.setApplicationVersion("1.0.0")
     app.setOrganizationName("Horizon Password Manager")
     app.setWindowIcon(gui_icons.create_application_icon())
 
-    # Apply theme
+    cfg = load_config()
+    theme = cfg.get("theme")
+    if isinstance(theme, str) and theme.lower() in ("dark", "light"):
+        theme_manager.set_theme(theme.lower())
+
     theme_manager.apply_theme(app)
     
     # Create and show main window
