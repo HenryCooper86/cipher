@@ -183,11 +183,11 @@ class SettingsWindow(QWidget):
         
         layout.addWidget(entropy_group)
         
-        # History group
-        history_group = QGroupBox("History Settings")
+        # Saved passwords (vault) limits
+        history_group = QGroupBox("Saved Passwords")
         history_layout = QGridLayout(history_group)
         
-        history_layout.addWidget(QLabel("Maximum History Size:"), 0, 0)
+        history_layout.addWidget(QLabel("Maximum saved passwords:"), 0, 0)
         self.max_history_spin = QSpinBox()
         self.max_history_spin.setRange(100, 10000)
         self.max_history_spin.setValue(self._config.get("policy", {}).get("max_history_size", 1000))

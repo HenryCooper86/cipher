@@ -10,10 +10,9 @@ from pwd_generator.gui import (
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
     QMessageBox, QFileDialog, QDialog, QTextEdit, QComboBox,
     QDialogButtonBox, QDateEdit, Qt, QApplication, QClipboard,
-    QSizePolicy, QColor, QBrush,
+    QSizePolicy, QColor, QBrush, QCheckBox,
 )
 from pwd_generator.gui.widgets import theme_manager
-from pwd_generator.gui.widgets.tick_checkbox import TickCheckBox
 from pwd_generator import SecurePasswordGenerator
 from pwd_generator.exceptions import HistoryError, EncryptionError
 from datetime import datetime
@@ -88,16 +87,19 @@ class HistoryWindow(QWidget):
         self.history_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.history_table.setAlternatingRowColors(True)
         self.history_table.doubleClicked.connect(self._on_table_double_clicked)
+        self.history_table.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOn
+        )
         
         header = self.history_table.horizontalHeader()
         header.setSectionResizeMode(COL_SELECT, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(COL_SERVICE, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(COL_SERVICE, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(COL_PASSWORD, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(COL_STRENGTH, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(COL_ENTROPY, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(COL_CREATED, QHeaderView.ResizeMode.Fixed)
         
-        self.history_table.setColumnWidth(COL_SELECT, 48)
+        self.history_table.setColumnWidth(COL_SELECT, 76)
         self.history_table.setColumnWidth(COL_STRENGTH, 100)
         self.history_table.setColumnWidth(COL_ENTROPY, 88)
         self.history_table.setColumnWidth(COL_CREATED, 130)
@@ -202,9 +204,10 @@ class HistoryWindow(QWidget):
             hl = QHBoxLayout(box_host)
             hl.setContentsMargins(4, 2, 4, 2)
             hl.addStretch()
-            cb = TickCheckBox()
+            cb = QCheckBox()
+            cb.setText("")
             cb.setToolTip("Select this entry")
-            hl.addWidget(cb)
+            hl.addWidget(cb, 0, Qt.AlignmentFlag.AlignCenter)
             hl.addStretch()
             self.history_table.setCellWidget(row, COL_SELECT, box_host)
 
@@ -252,6 +255,7 @@ class HistoryWindow(QWidget):
             self.history_table.setItem(row, COL_CREATED, created_item)
 
         self._update_stats(len(pairs))
+        self.history_table.resizeColumnToContents(COL_SERVICE)
 
     def _filter_history(self):
         """Filter history based on search and strength filter."""
@@ -261,7 +265,7 @@ class HistoryWindow(QWidget):
         host = self.history_table.cellWidget(row, COL_SELECT)
         if host is None:
             return None
-        return host.findChild(TickCheckBox)
+        return host.findChild(QCheckBox)
 
     def _checked_rows(self) -> list:
         rows = []
@@ -407,7 +411,7 @@ class HistoryWindow(QWidget):
         """Export history to file."""
         file_path, _ = QFileDialog.getSaveFileName(
             self,
-            f"Export History ({format.upper()})",
+            f"Export Saved Passwords ({format.upper()})",
             f"password_history.{format}",
             f"{format.upper()} Files (*.{format})"
         )
@@ -424,9 +428,13 @@ class HistoryWindow(QWidget):
                 success = export_history_csv(self._generator.history, file_path, include_passwords=True)
             
             if success:
-                QMessageBox.information(self, "Export Complete", f"History exported to {file_path}")
+                QMessageBox.information(
+                    self, "Export Complete", f"Saved passwords exported to {file_path}"
+                )
             else:
-                QMessageBox.warning(self, "Export Failed", "Failed to export history.")
+                QMessageBox.warning(
+                    self, "Export Failed", "Failed to export saved passwords."
+                )
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Export failed: {e}")
 

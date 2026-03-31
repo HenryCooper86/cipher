@@ -1,5 +1,5 @@
 """
-Main Window for Horizon Password Generator
+Main window for Horizon Cypher.
 
 The primary application window with navigation and all features.
 """
@@ -12,6 +12,7 @@ from pwd_generator.gui import (
     QGridLayout, QGroupBox, Qt, QSplitter, QSizePolicy,
 )
 from pwd_generator.gui.widgets import theme_manager
+from pwd_generator.gui.constants import APP_DISPLAY_NAME
 from pwd_generator.gui import icons as gui_icons
 from pwd_generator.gui.generator_window import GeneratorWindow
 from pwd_generator.gui.history_window import HistoryWindow
@@ -134,7 +135,7 @@ class MainWindow(QMainWindow):
     
     def _setup_ui(self):
         """Set up the main UI."""
-        self.setWindowTitle("Horizon Password Manager")
+        self.setWindowTitle(APP_DISPLAY_NAME)
         self.setMinimumSize(880, 560)
         self.resize(1100, 720)
 
@@ -175,7 +176,7 @@ class MainWindow(QMainWindow):
         """Create the navigation sidebar."""
         sidebar = QFrame()
         sidebar.setObjectName("sidebar")
-        sidebar.setMinimumWidth(168)
+        sidebar.setMinimumWidth(200)
         sidebar.setMaximumWidth(340)
         self._sidebar = sidebar
 
@@ -183,14 +184,17 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(12, 20, 12, 16)
         layout.setSpacing(10)
 
-        self._sidebar_title = QLabel("Horizon Password\nManager")
-        self._sidebar_title.setWordWrap(True)
+        self._sidebar_title = QLabel(APP_DISPLAY_NAME)
+        self._sidebar_title.setWordWrap(False)
+        self._sidebar_title.setAlignment(
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+        )
         self._sidebar_title.setStyleSheet(
             f"""
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 700;
-            letter-spacing: 0.3px;
-            line-height: 1.25;
+            letter-spacing: 0.2px;
+            line-height: 1.2;
             padding: 4px 4px 12px 4px;
             color: {theme_manager.get_color('text_primary')};
         """
@@ -206,7 +210,7 @@ class MainWindow(QMainWindow):
 
         nav_items = [
             ("Generate", "generator"),
-            ("History", "history"),
+            ("Saved Passwords", "history"),
             ("Settings", "settings"),
         ]
 
@@ -224,6 +228,17 @@ class MainWindow(QMainWindow):
             self.nav_buttons.append((btn, page_id))
 
         layout.addStretch(1)
+
+        self.exit_btn = QPushButton("Quit")
+        self.exit_btn.setObjectName("navButton")
+        self.exit_btn.setCheckable(False)
+        self.exit_btn.setMinimumHeight(40)
+        self.exit_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        self.exit_btn.setToolTip("Quit the application (Ctrl+Q)")
+        self.exit_btn.clicked.connect(self.close)
+        layout.addWidget(self.exit_btn)
 
         self.theme_btn = QPushButton()
         self.theme_btn.setObjectName("navButton")
@@ -253,7 +268,7 @@ class MainWindow(QMainWindow):
         # File menu
         file_menu = menubar.addMenu("File")
         
-        export_action = QAction("Export History...", self)
+        export_action = QAction("Export Saved Passwords...", self)
         export_action.setShortcut("Ctrl+E")
         export_action.triggered.connect(self._export_history)
         file_menu.addAction(export_action)
@@ -265,10 +280,10 @@ class MainWindow(QMainWindow):
         
         file_menu.addSeparator()
         
-        exit_action = QAction("Exit", self)
-        exit_action.setShortcut("Ctrl+Q")
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
+        quit_action = QAction("Quit", self)
+        quit_action.setShortcut("Ctrl+Q")
+        quit_action.triggered.connect(self.close)
+        file_menu.addAction(quit_action)
         
         # Tools menu
         tools_menu = menubar.addMenu("Tools")
@@ -300,10 +315,9 @@ class MainWindow(QMainWindow):
         gen_action.triggered.connect(lambda: self._navigate_to("generator"))
         toolbar.addAction(gen_action)
         
-        # History action
-        hist_action = QAction("History", self)
-        hist_action.triggered.connect(lambda: self._navigate_to("history"))
-        toolbar.addAction(hist_action)
+        saved_action = QAction("Saved Passwords", self)
+        saved_action.triggered.connect(lambda: self._navigate_to("history"))
+        toolbar.addAction(saved_action)
     
     def _setup_statusbar(self):
         """Set up the status bar."""
@@ -427,10 +441,10 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_sidebar_title"):
             self._sidebar_title.setStyleSheet(
                 f"""
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 700;
-            letter-spacing: 0.3px;
-            line-height: 1.25;
+            letter-spacing: 0.2px;
+            line-height: 1.2;
             padding: 4px 4px 12px 4px;
             color: {theme_manager.get_color('text_primary')};
         """
@@ -445,7 +459,7 @@ class MainWindow(QMainWindow):
         """Export password history."""
         file_path, _ = QFileDialog.getSaveFileName(
             self,
-            "Export History",
+            "Export Saved Passwords",
             "password_history.json",
             "JSON Files (*.json);;CSV Files (*.csv)"
         )
@@ -462,9 +476,13 @@ class MainWindow(QMainWindow):
                 success = export_history_csv(self._generator.history, file_path)
             
             if success:
-                QMessageBox.information(self, "Export Complete", f"History exported to {file_path}")
+                QMessageBox.information(
+                    self, "Export Complete", f"Saved passwords exported to {file_path}"
+                )
             else:
-                QMessageBox.warning(self, "Export Failed", "Failed to export history.")
+                QMessageBox.warning(
+                    self, "Export Failed", "Failed to export saved passwords."
+                )
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Export failed: {e}")
     
@@ -524,15 +542,18 @@ class MainWindow(QMainWindow):
         )
     
     def _show_qr_generator(self):
-        """Show QR code generator."""
-        QMessageBox.information(self, "QR Generator", "QR Code generation is available via the CLI.")
+        """Open Generate view and show QR for the current generated or analyzed password."""
+        if not getattr(self, "generator_view", None):
+            return
+        self._navigate_to("generator")
+        self.generator_view.open_qr_code_dialog(self)
     
     def _show_about(self):
         """Show about dialog."""
         QMessageBox.about(
             self,
-            "About Horizon Password Manager",
-            "<h3>Horizon Password Manager</h3>"
+            f"About {APP_DISPLAY_NAME}",
+            f"<h3>{APP_DISPLAY_NAME}</h3>"
             "<p>A secure password generator with encrypted history, "
             "breach checking, and password analysis.</p>"
             "<p>Features:</p>"
@@ -570,12 +591,17 @@ def run_gui():
         from PySide6.QtWidgets import QStyleFactory
 
     app = QApplication(sys.argv)
+    aa = getattr(Qt, "ApplicationAttribute", None)
+    if aa is not None:
+        no_native = getattr(aa, "AA_DontUseNativeMenuBar", None)
+        if no_native is not None:
+            app.setAttribute(no_native, True)
     fusion = QStyleFactory.create("Fusion")
     if fusion is not None:
         app.setStyle(fusion)
-    app.setApplicationName("Horizon Password Manager")
+    app.setApplicationName(APP_DISPLAY_NAME)
     app.setApplicationVersion("1.0.0")
-    app.setOrganizationName("Horizon Password Manager")
+    app.setOrganizationName(APP_DISPLAY_NAME)
     app.setWindowIcon(gui_icons.create_application_icon())
 
     cfg = load_config()

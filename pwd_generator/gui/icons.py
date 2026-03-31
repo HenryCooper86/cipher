@@ -11,8 +11,10 @@ from typing import Dict, Optional
 
 try:
     from PyQt6.QtCore import QByteArray, QBuffer, QIODevice
+    from PyQt6.QtGui import QPainterPath
 except ImportError:
     from PySide6.QtCore import QByteArray, QBuffer, QIODevice
+    from PySide6.QtGui import QPainterPath
 
 from pwd_generator.gui import (
     QBrush,
@@ -69,7 +71,7 @@ def _make_checkbox_checked_pixmap(
     p.setBrush(QBrush(inner))
     p.drawRoundedRect(rect, r, r)
 
-    tw = max(2, int(2.65 * dpr))
+    tw = max(3, int(3.25 * dpr))
     p.setPen(
         QPen(
             tick,
@@ -85,6 +87,34 @@ def _make_checkbox_checked_pixmap(
     p.drawLine(int(x0), int(y0), int(x1), int(y1))
     p.drawLine(int(x1), int(y1), int(x2), int(y2))
 
+    p.end()
+    return pm
+
+
+def _make_checkbox_tick_only_pixmap(tick: QColor) -> QPixmap:
+    """Transparent 18×18 (at DPR) canvas with only the check mark strokes."""
+    dpr = 4
+    base = 18
+    sz = base * dpr
+    pm = QPixmap(sz, sz)
+    pm.fill(Qt.GlobalColor.transparent)
+    p = QPainter(pm)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+    tw = max(3, int(3.25 * dpr))
+    p.setPen(
+        QPen(
+            tick,
+            tw,
+            Qt.PenStyle.SolidLine,
+            Qt.PenCapStyle.RoundCap,
+            Qt.PenJoinStyle.RoundJoin,
+        )
+    )
+    x0, y0 = 3.9 * dpr, 9.1 * dpr
+    x1, y1 = 7.85 * dpr, 12.85 * dpr
+    x2, y2 = 14.35 * dpr, 5.35 * dpr
+    p.drawLine(int(x0), int(y0), int(x1), int(y1))
+    p.drawLine(int(x1), int(y1), int(x2), int(y2))
     p.end()
     return pm
 
@@ -140,6 +170,17 @@ def combobox_down_arrow_qss_image(colors: Dict[str, str]) -> str:
     if uri is not None:
         return uri
     return ""
+
+
+def checkbox_tick_only_qss_image(theme: str, colors: Dict[str, str]) -> str:
+    """
+    PNG data URI for QSS `image:` — tick only, for use over QSS-drawn checked box fill.
+    Returns empty string if encoding fails (caller should fall back to full composite).
+    """
+    _, _, tick = _checkbox_checked_colors(theme, colors)
+    pm = _make_checkbox_tick_only_pixmap(tick)
+    uri = _pixmap_png_data_uri(pm)
+    return uri if uri is not None else ""
 
 
 def checkbox_indicator_checked_qss_image(theme: str, colors: Dict[str, str]) -> str:
@@ -223,7 +264,7 @@ def _render_radio_checked_png(
 
 def create_application_icon() -> QIcon:
     """
-    Window / taskbar icon: rounded tile with lock motif (Horizon Password Manager).
+    Window / taskbar icon: rounded tile with padlock (cypher / vault motif).
     """
     icon = QIcon()
     for size in (16, 24, 32, 48, 64, 128, 256):
@@ -233,7 +274,7 @@ def create_application_icon() -> QIcon:
 
 
 def _render_app_icon_pixmap(size: int) -> QPixmap:
-    """Rounded blue tile with ring (reads as “secure” down to 16px)."""
+    """Rounded blue tile with padlock + keyhole (readable from 16px)."""
     s = max(size, 16)
     pm = QPixmap(s, s)
     pm.fill(Qt.GlobalColor.transparent)
@@ -249,11 +290,57 @@ def _render_app_icon_pixmap(size: int) -> QPixmap:
     p.setPen(Qt.PenStyle.NoPen)
     p.drawRoundedRect(QRectF(margin, margin, r, r), s * 0.2, s * 0.2)
 
-    ring = max(2, s // 10)
-    inset = s * 0.28
+    cx = s / 2
+    fg = QColor("#f0f4fc")
+    deep = QColor("#2a4a84")
+
+    bw = s * 0.38
+    bh = s * 0.32
+    bx = cx - bw / 2
+    by = s * 0.505
+    body_rr = max(1.5, s * 0.045)
+
+    # Lock body
+    p.setBrush(QBrush(fg))
+    p.setPen(Qt.PenStyle.NoPen)
+    p.drawRoundedRect(QRectF(bx, by, bw, bh), body_rr, body_rr)
+
+    # Keyhole (cypher cue); skip on tiny sizes so silhouette stays clear
+    if s >= 20:
+        p.setBrush(QBrush(deep))
+        kh_r = s * 0.055
+        kcy = by + bh * 0.34
+        p.drawEllipse(QRectF(cx - kh_r, kcy - kh_r, 2 * kh_r, 2 * kh_r))
+        slot_w = max(2.0, s * 0.07)
+        slot_h = bh * 0.38
+        p.drawRoundedRect(
+            QRectF(cx - slot_w / 2, kcy + kh_r * 0.35, slot_w, slot_h),
+            slot_w * 0.35,
+            slot_w * 0.35,
+        )
+
+    # Shackle (stroke over body top)
+    sh_w = bw * 0.78
+    sh_h = bh * 1.05
+    arc_rect = QRectF(cx - sh_w / 2, by - sh_h * 0.68, sh_w, sh_h * 1.2)
+    lw = max(1.6, s * 0.085)
     p.setBrush(Qt.BrushStyle.NoBrush)
-    p.setPen(QPen(QColor("#f0f4fc"), ring, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
-    p.drawEllipse(QRectF(inset, inset, s - 2 * inset, s - 2 * inset))
+    p.setPen(
+        QPen(
+            fg,
+            lw,
+            Qt.PenStyle.SolidLine,
+            Qt.PenCapStyle.RoundCap,
+            Qt.PenJoinStyle.RoundJoin,
+        )
+    )
+    shackle = QPainterPath()
+    lx = bx + bw * 0.2
+    rx = bx + bw * 0.8
+    shackle.moveTo(lx, by + lw * 0.15)
+    shackle.arcTo(arc_rect, 180.0, -180.0)
+    shackle.lineTo(rx, by + lw * 0.15)
+    p.drawPath(shackle)
 
     p.end()
     return pm

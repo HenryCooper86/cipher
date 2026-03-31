@@ -1,5 +1,5 @@
 """
-Theme Manager for Horizon Password Manager GUI
+Theme manager for the Horizon Cypher GUI.
 
 Supports dark and light themes with calibrated sRGB-friendly palettes.
 """
@@ -67,8 +67,8 @@ class ThemeColors:
         "checkbox_unchecked_border": "#8b97c4",
         "checkbox_unchecked_hover_bg": "#383f5c",
         # Checkbox checked PNG (high contrast on dark)
-        "checkbox_checked_bg": "#3e4f7d",
-        "checkbox_checked_border": "#b8ceff",
+        "checkbox_checked_bg": "#4a63a8",
+        "checkbox_checked_border": "#d4e2ff",
         "checkbox_tick": "#ffffff",
     }
     
@@ -175,9 +175,79 @@ class ThemeManager:
         c = self._colors
         from pwd_generator.gui import icons
 
+        cb_tick = icons.checkbox_tick_only_qss_image(self._current_theme, c)
         cb_checked = icons.checkbox_indicator_checked_qss_image(
             self._current_theme, c
         )
+        cb_checked_image = cb_tick if cb_tick else cb_checked
+        if cb_tick:
+            _chk_checked_body = (
+                f"border: 2px solid {c['checkbox_checked_border']};\n"
+                f"                border-radius: 4px;\n"
+                f"                background-color: {c['checkbox_checked_bg']};\n"
+                f"                image: {cb_checked_image};"
+            )
+            checkbox_indicator_checked_css = f"""
+            QCheckBox::indicator:checked {{
+                width: 18px;
+                height: 18px;
+                {_chk_checked_body}
+            }}
+            QCheckBox::indicator:checked:hover {{
+                width: 18px;
+                height: 18px;
+                {_chk_checked_body}
+            }}
+            QCheckBox::indicator:checked:focus {{
+                width: 18px;
+                height: 18px;
+                {_chk_checked_body}
+            }}
+            QCheckBox::indicator:checked:pressed {{
+                width: 18px;
+                height: 18px;
+                {_chk_checked_body}
+            }}
+            """
+        else:
+            checkbox_indicator_checked_css = f"""
+            QCheckBox::indicator:checked {{
+                width: 18px;
+                height: 18px;
+                border: none;
+                border-radius: 4px;
+                background-color: transparent;
+                background: transparent;
+                image: {cb_checked_image};
+            }}
+            QCheckBox::indicator:checked:hover {{
+                width: 18px;
+                height: 18px;
+                border: none;
+                border-radius: 4px;
+                background-color: transparent;
+                background: transparent;
+                image: {cb_checked_image};
+            }}
+            QCheckBox::indicator:checked:focus {{
+                width: 18px;
+                height: 18px;
+                border: 1px solid {c['border_focus']};
+                border-radius: 4px;
+                background-color: transparent;
+                background: transparent;
+                image: {cb_checked_image};
+            }}
+            QCheckBox::indicator:checked:pressed {{
+                width: 18px;
+                height: 18px;
+                border: none;
+                border-radius: 4px;
+                background-color: transparent;
+                background: transparent;
+                image: {cb_checked_image};
+            }}
+            """
         rb_checked = icons.radio_indicator_checked_url(self._current_theme, c)
         combo_arrow = icons.combobox_down_arrow_qss_image(c)
 
@@ -189,8 +259,7 @@ class ThemeManager:
             }}
             
             QWidget#historyCheckboxHost {{
-                background-color: {c['background_tertiary']};
-                border-radius: 6px;
+                background-color: transparent;
             }}
             
             QMainWindow, QDialog {{
@@ -238,6 +307,9 @@ class ThemeManager:
                 color: #ffffff;
                 border: none;
                 font-weight: 600;
+                padding: 10px 20px;
+                min-height: 36px;
+                text-align: center;
             }}
             
             QPushButton#primaryButton:hover {{
@@ -250,6 +322,9 @@ class ThemeManager:
                 color: #ffffff;
                 border: none;
                 font-weight: 600;
+                padding: 10px 20px;
+                min-height: 36px;
+                text-align: center;
             }}
             
             QPushButton#dangerButton:hover {{
@@ -263,6 +338,9 @@ class ThemeManager:
                 color: #ffffff;
                 border: none;
                 font-weight: 600;
+                padding: 10px 20px;
+                min-height: 36px;
+                text-align: center;
             }}
             
             QPushButton#navButton {{
@@ -407,35 +485,8 @@ class ThemeManager:
                 background-color: {c['background_tertiary']};
             }}
             
-            QCheckBox::indicator:checked {{
-                width: 18px;
-                height: 18px;
-                border: 2px solid transparent;
-                border-radius: 4px;
-                background-color: {c['checkbox_checked_bg']};
-                image: {cb_checked};
-            }}
-            
-            QCheckBox::indicator:checked:hover {{
-                border: 2px solid {c['border_hover']};
-                border-radius: 4px;
-                background-color: {c['checkbox_checked_bg']};
-                image: {cb_checked};
-            }}
-            
-            QCheckBox::indicator:checked:focus {{
-                border: 2px solid {c['border_focus']};
-                border-radius: 4px;
-                background-color: {c['checkbox_checked_bg']};
-                image: {cb_checked};
-            }}
-            
-            QCheckBox::indicator:checked:pressed {{
-                border: 2px solid {c['border_focus']};
-                border-radius: 4px;
-                background-color: {c['checkbox_checked_bg']};
-                image: {cb_checked};
-            }}
+            /* Checked: QSS draws box; tick-only PNG overlays (full PNG if tick encode fails). */
+            {checkbox_indicator_checked_css}
             
             /* RadioButton */
             QRadioButton {{
@@ -468,8 +519,8 @@ class ThemeManager:
                 font-weight: bold;
                 border: 1px solid {c['border_primary']};
                 border-radius: 8px;
-                margin-top: 12px;
-                padding-top: 12px;
+                margin-top: 14px;
+                padding-top: 14px;
             }}
             
             QGroupBox::title {{
@@ -478,27 +529,45 @@ class ThemeManager:
                 padding: 0 5px;
             }}
             
+            QGroupBox QLabel, QGroupBox QCheckBox {{
+                font-weight: normal;
+                color: {c['text_primary']};
+            }}
+            
             /* TabWidget */
             QTabWidget::pane {{
                 border: 1px solid {c['border_primary']};
                 border-radius: 8px;
                 background-color: {c['background_secondary']};
+                padding-top: 6px;
+            }}
+            
+            QTabWidget::tab-bar {{
+                left: 8px;
+                alignment: left;
             }}
             
             QTabBar::tab {{
                 background-color: {c['background_tertiary']};
                 color: {c['text_primary']};
-                border: 1px solid {c['border_primary']};
+                border-top: 1px solid {c['border_primary']};
+                border-left: 1px solid {c['border_primary']};
+                border-right: 1px solid {c['border_primary']};
                 border-bottom: none;
                 border-top-left-radius: 6px;
                 border-top-right-radius: 6px;
                 padding: 8px 16px;
                 margin-right: 2px;
+                min-height: 20px;
             }}
             
             QTabBar::tab:selected {{
                 background-color: {c['background_secondary']};
+                border-top: 1px solid {c['border_primary']};
+                border-left: 1px solid {c['border_primary']};
+                border-right: 1px solid {c['border_primary']};
                 border-bottom: 1px solid {c['background_secondary']};
+                margin-bottom: -1px;
             }}
             
             QTabBar::tab:hover:!selected {{
@@ -714,7 +783,7 @@ class ThemeManager:
             }}
             
             QListWidget::item {{
-                padding: 8px;
+                padding: 10px 12px;
             }}
             
             QListWidget::item:selected {{
