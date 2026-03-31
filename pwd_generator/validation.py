@@ -3,7 +3,7 @@ import logging
 import re
 from typing import Tuple, Optional, List, Dict, Any
 from pwd_generator.exceptions import ValidationError
-from pwd_generator.constants import KEYBOARD_ROWS
+from pwd_generator.constants import KEYBOARD_ROWS, SPECIAL_CHARS
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,11 @@ class PasswordValidator:
         self.uppercase = string.ascii_uppercase
         self.lowercase = string.ascii_lowercase
         self.digits = string.digits
-        self.special_chars = "@#$!?^&*~()[]=-_."
+        self.special_chars = SPECIAL_CHARS
+        self.uppercase_set = set(self.uppercase)
+        self.lowercase_set = set(self.lowercase)
+        self.digits_set = set(self.digits)
+        self.special_chars_set = set(self.special_chars)
         self.keyboard_rows = KEYBOARD_ROWS
 
     def has_consecutive_pattern(self, password: str) -> bool:
@@ -77,14 +81,15 @@ class PasswordValidator:
     def calculate_entropy(self, text: str) -> float:
         import math
 
+        text_set = set(text)
         char_set_size = 0
-        if any(c in self.uppercase for c in text):
+        if text_set & self.uppercase_set:
             char_set_size += 26
-        if any(c in self.lowercase for c in text):
+        if text_set & self.lowercase_set:
             char_set_size += 26
-        if any(c in self.digits for c in text):
+        if text_set & self.digits_set:
             char_set_size += 10
-        if any(c in self.special_chars for c in text):
+        if text_set & self.special_chars_set:
             char_set_size += len(self.special_chars)
 
         if char_set_size == 0:

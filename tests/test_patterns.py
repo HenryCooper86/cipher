@@ -43,13 +43,16 @@ def test_generate_special(pattern_gen):
 
 def test_generate_complex_pattern(pattern_gen):
     result = pattern_gen.generate_from_pattern("[noun]-[verb]-[2digits]-[1special]")
-    parts = result.split("-")
+    # Split into max 4 parts to handle case where special char is '-'
+    parts = result.split("-", 3)
     assert len(parts) == 4
     assert parts[0][0].isupper()
     assert parts[1][0].isupper()
     assert parts[2].isdigit()
     assert len(parts[2]) == 2
-    assert parts[3] in "@#$!?^&*~()[]=-_."
+    # The special char is the last part; if it's '-', parts[3] will be '' due to split behavior
+    # Check the actual last character of the result instead
+    assert result[-1] in "@#$!?^&*~()[]=-_."
 
 
 def test_generate_upper_lower(pattern_gen):

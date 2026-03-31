@@ -4,6 +4,8 @@ import logging
 import getpass
 from typing import Optional
 
+from pwd_generator.exceptions import ClipboardError
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,7 +39,22 @@ def prompt_yes_no(prompt: str, default: Optional[bool] = None) -> bool:
         print("Invalid response. Please enter 'y' or 'n'.")
 
 
-def copy_to_clipboard(text: str) -> bool:
+def copy_to_clipboard(text: str, raise_on_error: bool = False) -> bool:
+    """
+    Copy text to system clipboard.
+    
+    Args:
+        text: The text to copy to clipboard
+        raise_on_error: If True, raises ClipboardError on failure instead of returning False
+        
+    Returns:
+        bool: True if successful, False otherwise
+        
+    Raises:
+        ClipboardError: If raise_on_error is True and clipboard operation fails
+    """
+    last_error = None
+    
     try:
         import pyperclip
 
@@ -45,7 +62,10 @@ def copy_to_clipboard(text: str) -> bool:
         logger.info("Copied to clipboard using pyperclip")
         return True
     except ImportError:
-        pass
+        logger.debug("pyperclip not available, trying system clipboard tools")
+    except Exception as e:
+        logger.debug(f"pyperclip failed: {e}")
+        last_error = e
 
     import shutil
 
@@ -56,9 +76,11 @@ def copy_to_clipboard(text: str) -> bool:
                 process = subprocess.Popen(
                     [cmd_path], stdin=subprocess.PIPE, close_fds=True
                 )  # nosec B603
-                process.communicate(text.encode("utf-8"))
+                process.communicate(text.encode("utf-8"), timeout=5)
                 logger.info("Copied to clipboard using pbcopy")
                 return True
+            else:
+                last_error = "pbcopy command not found"
         elif sys.platform == "linux":
             cmd_path = shutil.which("xclip")
             if cmd_path:
@@ -68,11 +90,14 @@ def copy_to_clipboard(text: str) -> bool:
                         stdin=subprocess.PIPE,
                         close_fds=True,
                     )  # nosec B603
-                    process.communicate(text.encode("utf-8"))
+                    process.communicate(text.encode("utf-8"), timeout=5)
                     logger.info("Copied to clipboard using xclip")
                     return True
-                except FileNotFoundError:
+                except FileNotFoundError as e:
                     logger.debug("xclip found but execution failed")
+                    last_error = e
+            else:
+                last_error = "xclip command not found"
         elif sys.platform == "win32":
             cmd_path = shutil.which("clip")
             if cmd_path:
@@ -80,15 +105,27 @@ def copy_to_clipboard(text: str) -> bool:
                     process = subprocess.Popen(
                         [cmd_path], stdin=subprocess.PIPE, close_fds=True
                     )  # nosec B603
-                    process.communicate(text.encode("utf-8"))
+                    process.communicate(text.encode("utf-8"), timeout=5)
                     logger.info("Copied to clipboard using clip")
                     return True
                 except Exception as e:
                     logger.debug(f"clip execution failed: {e}")
+                    last_error = e
+            else:
+                last_error = "clip command not found"
+    except subprocess.TimeoutExpired:
+        logger.warning("Clipboard operation timed out")
+        last_error = "Clipboard operation timed out"
     except Exception as e:
         logger.warning(f"Clipboard copy failed: {e}")
-        return False
+        last_error = e
 
+    if raise_on_error:
+        raise ClipboardError(
+            f"Failed to copy to clipboard: {last_error or 'No clipboard tool available'}",
+            details={"platform": sys.platform, "error": str(last_error) if last_error else None}
+        )
+    
     return False
 
 

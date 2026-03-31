@@ -71,7 +71,8 @@ def generate_qr_code(
             if output_dir:
                 output_path = Path(output_dir) / output_path.name
         else:
-            filename = f"password_qr_{hash(text) % 10000}.png"
+            import secrets
+            filename = f"password_qr_{secrets.token_hex(4)}.png"
             output_path = Path(output_dir) / filename
 
         # Ensure directory exists

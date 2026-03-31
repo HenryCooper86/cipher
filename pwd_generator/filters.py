@@ -55,10 +55,12 @@ def sort_history(history: List[Dict],
     sorted_history = history.copy()
     
     if sort_by == 'date':
-        sorted_history.sort(
-            key=lambda x: datetime.fromisoformat(x.get('metadata', {}).get('created_at', '1970-01-01')),
-            reverse=reverse
-        )
+        def get_date_key(x):
+            try:
+                return datetime.fromisoformat(x.get('metadata', {}).get('created_at', '1970-01-01'))
+            except (ValueError, TypeError):
+                return datetime(1970, 1, 1)
+        sorted_history.sort(key=get_date_key, reverse=reverse)
     elif sort_by == 'service':
         sorted_history.sort(
             key=lambda x: x.get('metadata', {}).get('service', '').lower(),

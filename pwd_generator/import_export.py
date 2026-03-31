@@ -5,6 +5,8 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 from datetime import datetime
 
+from pwd_generator.exceptions import FileOperationError, ValidationError
+
 logger = logging.getLogger(__name__)
 
 
@@ -61,12 +63,18 @@ def import_from_csv(
 
         logger.info(f"Imported {len(entries)} entries from {filename}")
         return entries
+    except FileNotFoundError as e:
+        logger.error(f"CSV file not found: {filename}")
+        raise FileOperationError(f"Import file not found: {filename}", details={"path": filename})
+    except PermissionError as e:
+        logger.error(f"Permission denied reading CSV file: {filename}")
+        raise FileOperationError(f"Permission denied reading file: {filename}", details={"path": filename})
     except (IOError, OSError) as e:
         logger.error(f"File I/O error during CSV import: {e}")
-        raise
+        raise FileOperationError(f"Failed to read CSV file: {e}", details={"path": filename, "error": str(e)})
     except csv.Error as e:
         logger.error(f"CSV parsing error: {e}")
-        raise
+        raise ValidationError(f"Invalid CSV format: {e}", details={"path": filename, "error": str(e)})
 
 
 def import_from_json(filename: str) -> List[Dict[str, Any]]:
@@ -98,12 +106,18 @@ def import_from_json(filename: str) -> List[Dict[str, Any]]:
 
         logger.info(f"Imported {len(entries)} entries from {filename}")
         return entries
+    except FileNotFoundError as e:
+        logger.error(f"JSON file not found: {filename}")
+        raise FileOperationError(f"Import file not found: {filename}", details={"path": filename})
+    except PermissionError as e:
+        logger.error(f"Permission denied reading JSON file: {filename}")
+        raise FileOperationError(f"Permission denied reading file: {filename}", details={"path": filename})
     except (IOError, OSError) as e:
         logger.error(f"File I/O error during JSON import: {e}")
-        raise
+        raise FileOperationError(f"Failed to read JSON file: {e}", details={"path": filename, "error": str(e)})
     except json.JSONDecodeError as e:
         logger.error(f"JSON parsing error: {e}")
-        raise
+        raise ValidationError(f"Invalid JSON format: {e}", details={"path": filename, "error": str(e)})
 
 
 def export_to_1password_csv(history: List[Dict], filename: str) -> bool:

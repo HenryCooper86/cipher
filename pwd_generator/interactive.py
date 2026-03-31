@@ -55,6 +55,8 @@ class BaseMenu:
                             return
                     except (ValueError, ValidationError) as e:
                         print(f"\n[ERROR] {e}")
+                    except (OSError, IOError) as e:
+                        print(f"\n[ERROR] File error: {e}")
                     except Exception as e:
                         import logging
 
@@ -256,6 +258,8 @@ class MainMenu(BaseMenu):
             print(f"Invalid input: {e}")
         except (OSError, IOError) as e:
             print(f"File operation error: {e}")
+        except (OSError, IOError) as e:
+            print(f"File operation error: {e}")
         except Exception as e:
             import logging
 
@@ -286,7 +290,7 @@ class MainMenu(BaseMenu):
                 notes = get_input("Notes (optional): ").strip()
                 self.gen.add_to_history(pwd, service, notes)
                 print("Saved to encrypted history")
-        except Exception as e:
+        except (ValueError, TypeError) as e:
             print(f"Error generating from pattern: {e}")
 
     def generate_with_profile(self):
@@ -878,7 +882,7 @@ class MainMenu(BaseMenu):
                 imported += 1
 
             print(f"[OK] Imported {imported} passwords from {filename}")
-        except Exception as e:
+        except (OSError, IOError, ValueError) as e:
             print(f"[ERROR] Error importing: {e}")
 
     def security_audit(self):
@@ -926,7 +930,7 @@ class MainMenu(BaseMenu):
                     filename = str(safe_path)
                     import json
 
-                    with open(filename, "w") as f:
+                    with open(filename, "w", encoding="utf-8") as f:
                         json.dump(report, f, indent=2)
                     print(f"[OK] Report saved to {filename}")
                 except ValueError as e:
@@ -1075,7 +1079,7 @@ class MainMenu(BaseMenu):
 
                 if format_choice == "1":
                     try:
-                        with open(filename, "w") as f:
+                        with open(filename, "w", encoding="utf-8") as f:
                             for pwd in passwords:
                                 f.write(pwd + "\n")
                         print(f"[OK] Exported to {filename}")
@@ -1371,7 +1375,7 @@ def main_interactive():
                                 master_password=master_password, policy=policy
                             )
                             break
-                        except Exception as e:
+                        except (ValueError, EncryptionError) as e:
                             print(f"Still failed: {e}")
                             print("Proceeding without encrypted history")
                             master_password = None
@@ -1404,6 +1408,8 @@ def main_interactive():
         logger = logging.getLogger(__name__)
         logger.error(f"File operation error: {e}")
         print(f"\nFile operation error: {e}")
+    except SystemExit:
+        raise
     except Exception as e:
         import logging
 

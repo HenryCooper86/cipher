@@ -44,7 +44,7 @@ class ProfileManager:
             return
         
         try:
-            with open(self.profiles_file, 'r') as f:
+            with open(self.profiles_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
             self.profiles = {}
@@ -64,7 +64,7 @@ class ProfileManager:
                 'profiles': [profile.to_dict() for profile in self.profiles.values()]
             }
             
-            with open(self.profiles_file, 'w') as f:
+            with open(self.profiles_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2)
             
             logger.info(f"Saved {len(self.profiles)} profiles")

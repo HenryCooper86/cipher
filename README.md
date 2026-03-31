@@ -77,9 +77,10 @@ For the impatient, here are the most common commands:
 
 ### Requirements
 
-- Python 3.7+
-- Core dependencies: `cryptography`, `pyperclip`
-- Optional dependencies: `qrcode[pil]`, `PyYAML`, `requests` (auto-installed when needed)
+- Python 3.9+
+- Core dependencies are declared in `pyproject.toml` (e.g. `cryptography`, `pyperclip`, `PyYAML`, `qrcode`, `requests`)
+- Optional: `pip install -e ".[gui]"` for the Qt GUI (`horizon-cipher-gui` / `python gui.py`)
+- Optional: `pip install -e ".[argon2]"` for Argon2 KDF support (otherwise PBKDF2 is used)
 
 ### Setup
 
@@ -87,8 +88,22 @@ For the impatient, here are the most common commands:
 # Clone or download the repository
 git clone https://github.com/HenryCooper86/cipher.git
 
-# Install dependencies
+# Recommended: install as a package (adds horizon-cipher and horizon-cipher-gui commands)
+pip install -e .
+
+# Or install runtime dependencies only from the lock-style list
 pip install -r requirements.txt
+```
+
+Logs from `cipher.py` / `horizon-cipher` go to a per-user directory by default (e.g. `~/Library/Logs/HorizonCipher/password_generator.log` on macOS, or `$XDG_STATE_HOME/horizon-cipher/` on Linux). Override with `--log-file`.
+
+### Development
+
+```bash
+pip install -r requirements-dev.txt
+# or: pip install -e ".[dev]"
+pytest -q
+ruff check pwd_generator/cli pwd_generator/entrypoint.py pwd_generator/paths.py gui.py cipher.py
 ```
 
 ## Usage
@@ -100,6 +115,18 @@ Run the script without arguments to start the interactive CLI:
 
 ```bash
 python cipher.py
+# or, after pip install -e .
+horizon-cipher
+```
+
+### Graphical interface
+
+With the GUI extra installed (`pip install -e ".[gui]"`):
+
+```bash
+horizon-cipher-gui
+# or
+python gui.py
 ```
 
 **Interactive Menu Options:**
@@ -319,7 +346,7 @@ pwd.horizon.cc/
 
 ## Testing
 
-The project includes comprehensive test coverage with **189 tests** covering all major features:
+The project includes comprehensive test coverage with **245+ tests** covering all major features:
 
 ```bash
 # Run all tests
@@ -339,7 +366,7 @@ pytest tests/ --cov=pwd_generator --cov-report=html
 - **Encryption**: History encryption/decryption
 - **Security Features**: Input validation, path security, logging security
 - **Advanced Features**: Profiles, patterns, QR codes, audit, import/export
-- **All 189 tests passing**
+- **All 245+ tests passing**
 
 ## Configuration
 
@@ -455,7 +482,7 @@ Create a `config.json` or `config.yaml` file to customize settings:
 ## Additional Resources
 
 - **Security Audit**: All vulnerabilities identified and fixed
-- **Test Coverage**: 189 comprehensive tests
+- **Test Coverage**: 245+ comprehensive tests
 - **Code Review**: Comprehensive code review completed
 - **Documentation**: All features documented and tested
 

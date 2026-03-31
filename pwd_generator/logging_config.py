@@ -1,6 +1,7 @@
 import logging
 import logging.handlers
 import sys
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -37,7 +38,7 @@ def setup_logging(
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
-        file_handler = logging.handlers.RotatingFileHandler(
+        file_handler = SecureRotatingFileHandler(
             log_file, maxBytes=max_bytes, backupCount=backup_count
         )
         file_handler.setLevel(logging.DEBUG)
@@ -47,6 +48,12 @@ def setup_logging(
         )
         file_handler.setFormatter(file_formatter)
         handlers.append(file_handler)
+        
+        # Set secure file permissions (owner read/write only)
+        try:
+            os.chmod(log_file, 0o600)
+        except OSError:
+            pass  # File may not exist yet, will be set after first write
 
     # Apply security filter to all handlers
     security_filter = SecurityFilter()
@@ -63,21 +70,41 @@ def setup_logging(
     logger.info("Logging initialized")
 
 
+class SecureRotatingFileHandler(logging.handlers.RotatingFileHandler):
+    """Rotating file handler that ensures secure file permissions."""
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._permissions_set = False
+        
+    def emit(self, record):
+        super().emit(record)
+        # Set secure permissions after first write
+        if not self._permissions_set:
+            try:
+                os.chmod(self.baseFilename, 0o600)
+                self._permissions_set = True
+            except OSError:
+                pass
+    
+    def doRollover(self):
+        super().doRollover()
+        # Ensure new log file also has secure permissions
+        try:
+            os.chmod(self.baseFilename, 0o600)
+        except OSError:
+            pass
+
+
 class SecurityFilter(logging.Filter):
     """Filter to prevent sensitive data from being logged."""
 
-    SENSITIVE_PATTERNS = [
+    # Patterns that indicate a secret value is present (usually key=value pairs)
+    SENSITIVE_KEYS = [
         "password",
         "master_password",
         "secret",
         "token",
-        "key",
-        "ssid",
-        "wifi",
-        "service",
-        "username",
-        "user",
-        "email",
         "api_key",
         "apikey",
         "access_token",
@@ -87,43 +114,60 @@ class SecurityFilter(logging.Filter):
         "passphrase",
         "pin",
         "pwd",
+        "ssid",
+        "master",
+        "credential",
+        "auth",
+        "key",
+    ]
+
+    # Standalone patterns that should trigger redaction of the whole message
+    SENSITIVE_PATTERNS = [
+        "password:",
+        "secret:",
+        "token:",
+        "api_key=",
+        "passphrase=",
     ]
 
     def filter(self, record):
         message = record.getMessage()
         message_lower = message.lower()
 
-        # Check if message contains sensitive patterns
-        for pattern in self.SENSITIVE_PATTERNS:
-            if pattern in message_lower:
-                record.msg = self._redact_sensitive(record.msg)
-                record.args = ()
-                break  # Only redact once
+        # Only redact if there's a strong indicator of sensitive data
+        if self._contains_sensitive_data(message_lower):
+            # Safely redact by creating a new message without mutating args
+            redacted = self._redact_sensitive(message)
+            record.msg = redacted
+            record.args = ()
 
         return True
 
+    def _contains_sensitive_data(self, message_lower):
+        """Check if message likely contains actual secret values."""
+        for pattern in self.SENSITIVE_PATTERNS:
+            if pattern in message_lower:
+                return True
+        # Check for key=value patterns with sensitive keys
+        for key in self.SENSITIVE_KEYS:
+            if f"{key}=" in message_lower or f"{key}:" in message_lower:
+                return True
+        return False
+
     def _redact_sensitive(self, msg):
         """Redact sensitive information from log messages."""
-        if isinstance(msg, str):
-            # Use regex to find and replace sensitive patterns more accurately
-            import re
+        if not isinstance(msg, str):
+            return msg
 
-            words = msg.split()
-            redacted = []
-            for word in words:
-                word_lower = word.lower()
-                # Check if word contains any sensitive pattern
-                if any(pattern in word_lower for pattern in self.SENSITIVE_PATTERNS):
-                    # Try to preserve structure (e.g., "password=xxx" -> "password=***REDACTED***")
-                    if "=" in word:
-                        key, _ = word.split("=", 1)
-                        redacted.append(f"{key}=***REDACTED***")
-                    elif ":" in word:
-                        key, _ = word.split(":", 1)
-                        redacted.append(f"{key}:***REDACTED***")
-                    else:
-                        redacted.append("***REDACTED***")
-                else:
-                    redacted.append(word)
-            return " ".join(redacted)
+        import re
+
+        # Redact key=value or key:value patterns for sensitive keys
+        for key in self.SENSITIVE_KEYS:
+            msg = re.sub(
+                rf"({re.escape(key)}\s*[=:]\s*)[^\s]+",
+                r"\1***REDACTED***",
+                msg,
+                flags=re.IGNORECASE,
+            )
+
         return msg

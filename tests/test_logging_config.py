@@ -29,9 +29,10 @@ def test_password_redaction(security_filter, log_record):
 
 
 def test_master_password_redaction(security_filter, log_record):
-    log_record.msg = "Master password validated"
+    log_record.msg = "Master password=secret123 validated"
     security_filter.filter(log_record)
     assert "***REDACTED***" in log_record.msg
+    assert "secret123" not in log_record.msg
 
 
 def test_token_redaction(security_filter, log_record):
@@ -50,7 +51,7 @@ def test_key_value_pair_redaction(security_filter, log_record):
 def test_key_value_colon_redaction(security_filter, log_record):
     log_record.msg = "api_key: abc123"
     security_filter.filter(log_record)
-    assert "api_key:***REDACTED***" in log_record.msg
+    assert "api_key: ***REDACTED***" in log_record.msg
 
 
 def test_ssid_redaction(security_filter, log_record):
@@ -60,33 +61,34 @@ def test_ssid_redaction(security_filter, log_record):
 
 
 def test_wifi_redaction(security_filter, log_record):
-    log_record.msg = "WiFi password configured"
+    log_record.msg = "wifi_password=secret123 configured"
     security_filter.filter(log_record)
     assert "***REDACTED***" in log_record.msg
+    assert "secret123" not in log_record.msg
 
 
-def test_service_name_redaction(security_filter, log_record):
+def test_service_name_not_redacted(security_filter, log_record):
     log_record.msg = "Service name: Gmail"
     security_filter.filter(log_record)
-    assert "***REDACTED***" in log_record.msg
+    assert "***REDACTED***" not in log_record.msg
 
 
-def test_username_redaction(security_filter, log_record):
+def test_username_not_redacted(security_filter, log_record):
     log_record.msg = "Username: john.doe"
     security_filter.filter(log_record)
-    assert "***REDACTED***" in log_record.msg
+    assert "***REDACTED***" not in log_record.msg
 
 
-def test_email_redaction(security_filter, log_record):
+def test_email_not_redacted(security_filter, log_record):
     log_record.msg = "Email: user@example.com"
     security_filter.filter(log_record)
-    assert "***REDACTED***" in log_record.msg
+    assert "***REDACTED***" not in log_record.msg
 
 
-def test_passphrase_redaction(security_filter, log_record):
+def test_passphrase_not_redacted(security_filter, log_record):
     log_record.msg = "Passphrase generated"
     security_filter.filter(log_record)
-    assert "***REDACTED***" in log_record.msg
+    assert "***REDACTED***" not in log_record.msg
 
 
 def test_pin_redaction(security_filter, log_record):
@@ -95,11 +97,11 @@ def test_pin_redaction(security_filter, log_record):
     assert "***REDACTED***" in log_record.msg
 
 
-def test_non_sensitive_message_redacted(security_filter, log_record):
-    # The filter is broad, it redacts if any sensitive pattern is present
+def test_non_sensitive_message_not_redacted(security_filter, log_record):
+    # The filter should not redact generic messages without secret values
     log_record.msg = "Password generation completed successfully"
     security_filter.filter(log_record)
-    assert "***REDACTED***" in log_record.msg
+    assert "***REDACTED***" not in log_record.msg
 
 
 def test_multiple_sensitive_patterns(security_filter, log_record):

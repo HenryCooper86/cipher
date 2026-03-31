@@ -1,6 +1,7 @@
+# Runtime dependencies (see pyproject.toml for authoritative list).
+# Install: pip install -e .
 cryptography>=46.0.3
 pyperclip>=1.8.2
-pytest>=7.0.0
 PyYAML>=6.0
 qrcode>=7.4.2
 Pillow>=10.0.0

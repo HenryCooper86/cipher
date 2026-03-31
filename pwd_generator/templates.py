@@ -2,6 +2,7 @@ import secrets
 import string
 import logging
 from typing import List, Optional, Set
+from pwd_generator.constants import SPECIAL_CHARS
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ class PasswordTemplate:
         if custom_special:
             self.special = custom_special
         elif special:
-            self.special = "@#$!?^&*~()[]=-_."
+            self.special = SPECIAL_CHARS
         else:
             self.special = ""
         

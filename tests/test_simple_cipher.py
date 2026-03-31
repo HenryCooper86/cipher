@@ -2,13 +2,14 @@ import unittest
 import sys
 import os
 import string
+import math
 from unittest.mock import patch, MagicMock
 from io import StringIO
 
-# Add parent directory to path to import simple_pwd
+# Add parent directory to path to import simple_cipher as simple_pwd
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import simple_pwd
+import simple_cipher as simple_pwd
 
 class TestSimplePwd(unittest.TestCase):
     def test_calculate_entropy(self):
@@ -19,14 +20,14 @@ class TestSimplePwd(unittest.TestCase):
         entropy = simple_pwd.calculate_entropy("abc")
         self.assertAlmostEqual(entropy, 14.101, places=3)
         
-        # Mixed (lower + upper + digits + special) -> log2(94) ≈ 6.55 bits per char
+        # Mixed (lower + upper + digits + special) -> log2(79) ≈ 6.30 bits per char
         # entropy of 1 char from full set
         # "A" has upper only -> pool 26 -> 4.7 bits
         self.assertAlmostEqual(simple_pwd.calculate_entropy("A"), 4.7004, places=3)
         
-        # "Aa1!" has all types -> pool 26+26+10+32 = 94
+        # "Aa1!" has all types -> pool 26+26+10+17 = 79
         entropy_complex = simple_pwd.calculate_entropy("Aa1!")
-        expected = 4 * 6.5545  # log2(94) * 4
+        expected = 4 * math.log2(79)  # log2(79) * 4
         self.assertAlmostEqual(entropy_complex, expected, places=1)
 
     def test_generate_password_length(self):
