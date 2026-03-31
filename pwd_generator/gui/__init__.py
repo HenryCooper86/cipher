@@ -1,5 +1,5 @@
 """
-Horizon Password Generator GUI Module
+Horizon Cypher GUI module.
 
 A PyQt6/PySide6-based GUI for the password generator.
 """

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Horizon Password Generator GUI launcher.
+Horizon Cypher GUI launcher.
 
 Prefer: horizon-cipher-gui (after pip install -e ".[gui]")
 """

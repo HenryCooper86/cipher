@@ -1,3 +1,4 @@
+import io
 import logging
 from typing import Optional
 from pathlib import Path
@@ -101,6 +102,53 @@ def generate_qr_code(
         return None
     except Exception as e:
         logger.error(f"Unexpected error during QR code generation: {e}")
+        return None
+
+
+def generate_qr_png_bytes(
+    text: str,
+    size: int = 10,
+    border: int = 4,
+) -> Optional[bytes]:
+    """
+    Encode text as a QR code and return PNG image bytes (no filesystem).
+
+    Uses the same QR parameters as generate_qr_code (box_size, border, error correction).
+
+    Args:
+        text: Payload to encode (empty string returns None).
+        size: box_size for QR modules.
+        border: Quiet zone width in modules.
+
+    Returns:
+        PNG file contents, or None if qrcode is unavailable or generation fails.
+    """
+    if not text or not text.strip():
+        return None
+    if not _ensure_qrcode():
+        logger.error("QR code generation not available")
+        return None
+
+    try:
+        import qrcode
+
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=size,
+            border=border,
+        )
+        qr.add_data(text)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return buf.getvalue()
+    except (IOError, OSError, TypeError, ValueError) as e:
+        logger.error("Error building QR PNG bytes: %s", e)
+        return None
+    except Exception as e:
+        logger.error("Unexpected error during QR PNG generation: %s", e)
         return None
 
 

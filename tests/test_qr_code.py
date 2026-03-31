@@ -3,10 +3,22 @@ import os
 from unittest.mock import MagicMock
 from pwd_generator.qr_code import (
     generate_qr_code,
+    generate_qr_png_bytes,
     generate_wifi_qr,
     qr_code_to_ascii,
     display_qr_code,
 )
+
+
+def test_generate_qr_png_bytes():
+    data = generate_qr_png_bytes("test123")
+    assert data is not None
+    assert data.startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_generate_qr_png_bytes_empty():
+    assert generate_qr_png_bytes("") is None
+    assert generate_qr_png_bytes("   ") is None
 
 
 def test_generate_qr_code(temp_dir):
