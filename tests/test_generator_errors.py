@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 from datetime import datetime, timedelta
 
 from pwd_generator.generator import SecurePasswordGenerator
-from pwd_generator.exceptions import ValidationError
+from pwd_generator.exceptions import ValidationError, HistoryError, EncryptionError
 
 
 class TestGeneratorInit:
@@ -117,16 +117,23 @@ class TestAddToHistory:
         gen = SecurePasswordGenerator()
         gen.encryption_manager = MagicMock()
         gen.encryption_manager.cipher = None
+        gen.validator = MagicMock()
+        gen.validator.calculate_strength_score = MagicMock(return_value="Strong")
+        gen.validator.calculate_entropy = MagicMock(return_value=80.0)
         
-        # Should not raise, just log warning
-        gen.add_to_history("password", "service", "notes")
+        # Should return False when encryption not initialized
+        result = gen.add_to_history("password", "service", "notes")
+        assert result is False
 
     def test_add_with_qr_code(self):
         gen = SecurePasswordGenerator()
         gen.encryption_manager = MagicMock()
         gen.encryption_manager.cipher = MagicMock()
+        gen.validator = MagicMock()
+        gen.validator.calculate_strength_score = MagicMock(return_value="Strong")
+        gen.validator.calculate_entropy = MagicMock(return_value=80.0)
         
-        gen.add_to_history(
+        result = gen.add_to_history(
             "password",
             "service",
             "notes",
@@ -134,6 +141,7 @@ class TestAddToHistory:
             qr_code_type="wifi"
         )
         
+        assert result is True
         assert len(gen.history) == 1
         assert gen.history[0]["metadata"]["qr_code_path"] == "/path/to/qr.png"
         assert gen.history[0]["metadata"]["qr_code_type"] == "wifi"
@@ -142,6 +150,9 @@ class TestAddToHistory:
         gen = SecurePasswordGenerator()
         gen.encryption_manager = MagicMock()
         gen.encryption_manager.cipher = MagicMock()
+        gen.validator = MagicMock()
+        gen.validator.calculate_strength_score = MagicMock(return_value="Strong")
+        gen.validator.calculate_entropy = MagicMock(return_value=80.0)
         gen.policy['max_history_size'] = 3
         
         # Add more entries than max
@@ -151,6 +162,22 @@ class TestAddToHistory:
         assert len(gen.history) == 3
         # Most recent should be first
         assert gen.history[0]["metadata"]["service"] == "service4"
+
+    def test_add_to_history_save_error(self):
+        """Test that HistoryError is raised when save fails."""
+        gen = SecurePasswordGenerator()
+        gen.encryption_manager = MagicMock()
+        gen.encryption_manager.cipher = MagicMock()
+        gen.encryption_manager.save_history.side_effect = EncryptionError("Disk full")
+        gen.validator = MagicMock()
+        gen.validator.calculate_strength_score = MagicMock(return_value="Strong")
+        gen.validator.calculate_entropy = MagicMock(return_value=80.0)
+        
+        with pytest.raises(HistoryError, match="Failed to add password"):
+            gen.add_to_history("password", "service", "notes")
+        
+        # Entry should be rolled back (removed from history)
+        assert len(gen.history) == 0
 
 
 class TestDeleteFromHistory:

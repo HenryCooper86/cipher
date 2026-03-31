@@ -1,6 +1,7 @@
 import logging
 import logging.handlers
 import sys
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -37,7 +38,7 @@ def setup_logging(
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
-        file_handler = logging.handlers.RotatingFileHandler(
+        file_handler = SecureRotatingFileHandler(
             log_file, maxBytes=max_bytes, backupCount=backup_count
         )
         file_handler.setLevel(logging.DEBUG)
@@ -47,6 +48,12 @@ def setup_logging(
         )
         file_handler.setFormatter(file_formatter)
         handlers.append(file_handler)
+        
+        # Set secure file permissions (owner read/write only)
+        try:
+            os.chmod(log_file, 0o600)
+        except OSError:
+            pass  # File may not exist yet, will be set after first write
 
     # Apply security filter to all handlers
     security_filter = SecurityFilter()
@@ -61,6 +68,32 @@ def setup_logging(
 
     logger = logging.getLogger(__name__)
     logger.info("Logging initialized")
+
+
+class SecureRotatingFileHandler(logging.handlers.RotatingFileHandler):
+    """Rotating file handler that ensures secure file permissions."""
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._permissions_set = False
+        
+    def emit(self, record):
+        super().emit(record)
+        # Set secure permissions after first write
+        if not self._permissions_set:
+            try:
+                os.chmod(self.baseFilename, 0o600)
+                self._permissions_set = True
+            except OSError:
+                pass
+    
+    def doRollover(self):
+        super().doRollover()
+        # Ensure new log file also has secure permissions
+        try:
+            os.chmod(self.baseFilename, 0o600)
+        except OSError:
+            pass
 
 
 class SecurityFilter(logging.Filter):
@@ -82,6 +115,10 @@ class SecurityFilter(logging.Filter):
         "pin",
         "pwd",
         "ssid",
+        "master",
+        "credential",
+        "auth",
+        "key",
     ]
 
     # Standalone patterns that should trigger redaction of the whole message

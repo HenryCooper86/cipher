@@ -4,6 +4,8 @@ from typing import Tuple, Optional, Dict, Any
 import urllib.request
 import urllib.error
 
+from pwd_generator.exceptions import NetworkError
+
 logger = logging.getLogger(__name__)
 
 

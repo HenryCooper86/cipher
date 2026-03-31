@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock, mock_open
 from pathlib import Path
 
 from pwd_generator.encryption import EncryptionManager, clear_memory
-from pwd_generator.exceptions import EncryptionError, ValidationError
+from pwd_generator.exceptions import EncryptionError, ValidationError, HistoryError
 
 
 class TestClearMemory:
@@ -13,16 +13,37 @@ class TestClearMemory:
 
     def test_clear_bytearray(self):
         data = bytearray(b'secret data')
-        clear_memory(data)
+        result = clear_memory(data)
+        assert result is True
         assert data == bytearray(b'\x00' * len(b'secret data'))
 
     def test_clear_bytes(self):
         data = b'secret data'
-        clear_memory(data)  # Should not raise
+        result = clear_memory(data)  # Should not raise, returns False
+        assert result is False
 
     def test_clear_str(self):
         data = 'secret data'
-        clear_memory(data)  # Should not raise
+        result = clear_memory(data)  # Should not raise, returns False
+        assert result is False
+
+    def test_clear_none(self):
+        result = clear_memory(None)
+        assert result is True
+
+    def test_clear_bytearray_exception(self):
+        # Test when bytearray clearing raises an exception
+        class BadByteArray(bytearray):
+            def __setitem__(self, key, value):
+                raise RuntimeError("Cannot modify")
+        
+        data = BadByteArray(b'secret')
+        result = clear_memory(data)
+        assert result is False
+
+    def test_clear_unknown_type(self):
+        result = clear_memory(12345)  # Unknown type
+        assert result is False
 
 
 class TestEncryptionManagerInit:
@@ -168,7 +189,8 @@ class TestSaveHistory:
     def test_save_not_initialized(self):
         em = EncryptionManager()
         em.cipher = None
-        em.save_history([])  # Should not raise, just log
+        with pytest.raises(HistoryError, match="encryption system not initialized"):
+            em.save_history([])
 
     def test_save_os_error(self):
         em = EncryptionManager()

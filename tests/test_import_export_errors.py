@@ -6,19 +6,20 @@ from io import StringIO
 from unittest.mock import patch, mock_open
 
 from pwd_generator import import_export
+from pwd_generator.exceptions import FileOperationError, ValidationError
 
 
 class TestImportFromCSV:
     """Tests for import_from_csv error paths."""
 
     def test_import_file_not_found(self):
-        with pytest.raises((IOError, OSError)):
+        with pytest.raises(FileOperationError):
             import_export.import_from_csv("/nonexistent/file.csv")
 
     def test_import_csv_error(self):
         with patch('builtins.open', mock_open(read_data='invalid,csv\n"unclosed quote')):
             with patch('csv.DictReader', side_effect=csv.Error("Parse error")):
-                with pytest.raises(csv.Error):
+                with pytest.raises(ValidationError):
                     import_export.import_from_csv("test.csv")
 
     def test_import_1password_format(self):
@@ -49,12 +50,12 @@ class TestImportFromJSON:
     """Tests for import_from_json error paths."""
 
     def test_import_file_not_found(self):
-        with pytest.raises((IOError, OSError)):
+        with pytest.raises(FileOperationError):
             import_export.import_from_json("/nonexistent/file.json")
 
     def test_import_json_decode_error(self):
         with patch('builtins.open', mock_open(read_data='invalid json')):
-            with pytest.raises(json.JSONDecodeError):
+            with pytest.raises(ValidationError):
                 import_export.import_from_json("test.json")
 
     def test_import_list_format(self):

@@ -6,7 +6,12 @@ from typing import List, Set, Optional, Tuple, Dict, Any, Union
 from datetime import datetime
 from pathlib import Path
 
-from pwd_generator.exceptions import ValidationError
+from pwd_generator.exceptions import (
+    ValidationError, 
+    HistoryError, 
+    EncryptionError,
+    PasswordGeneratorError
+)
 from pwd_generator.constants import DEFAULT_POLICY, WORDLIST, SPECIAL_CHARS
 from pwd_generator.validation import PasswordValidator
 from pwd_generator.encryption import EncryptionManager
@@ -78,10 +83,19 @@ class SecurePasswordGenerator:
         notes: str = "",
         qr_code_path: Optional[str] = None,
         qr_code_type: Optional[str] = None,
-    ) -> None:
+    ) -> bool:
+        """
+        Add a password entry to encrypted history.
+        
+        Returns:
+            bool: True if successfully added, False if encryption not initialized.
+            
+        Raises:
+            HistoryError: If there's an error saving to history.
+        """
         if not self.encryption_manager.cipher:
             logger.warning("Cannot add to history - encryption not initialized")
-            return
+            return False
 
         entry = {
             "password": password,
@@ -109,8 +123,15 @@ class SecurePasswordGenerator:
             )
 
         self.validator.history = self.history
-        self.encryption_manager.save_history(self.history)
-        logger.info(f"Added password for '{service}' to history")
+        try:
+            self.encryption_manager.save_history(self.history)
+            logger.info(f"Added password for '{service}' to history")
+            return True
+        except (HistoryError, EncryptionError) as e:
+            logger.error(f"Failed to save history: {e}")
+            # Remove the entry we just added since save failed
+            self.history.pop(0)
+            raise HistoryError(f"Failed to add password to history: {e}")
 
     def calculate_entropy(self, text: str) -> float:
         return self.validator.calculate_entropy(text)

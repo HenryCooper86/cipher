@@ -3,7 +3,7 @@ import os
 import secrets
 from pwd_generator.encryption import EncryptionManager, clear_memory
 from pwd_generator.validation import PasswordValidator
-from pwd_generator.exceptions import EncryptionError, ValidationError
+from pwd_generator.exceptions import EncryptionError, ValidationError, HistoryError
 
 
 @pytest.fixture
@@ -86,7 +86,8 @@ def test_load_history_wrong_password(encryption_manager, master_password):
 
 def test_save_history_no_cipher(encryption_manager):
     test_history = [{"password": "test", "metadata": {}}]
-    encryption_manager.save_history(test_history)
+    with pytest.raises(HistoryError):
+        encryption_manager.save_history(test_history)
     assert not os.path.exists(encryption_manager.history_file)
 
 
