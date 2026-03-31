@@ -12,6 +12,7 @@ from pwd_generator.gui import (
     QGridLayout, QGroupBox, Qt, QSplitter, QSizePolicy,
 )
 from pwd_generator.gui.widgets import theme_manager
+from pwd_generator.gui import icons as gui_icons
 from pwd_generator.gui.generator_window import GeneratorWindow
 from pwd_generator.gui.history_window import HistoryWindow
 from pwd_generator.gui.settings_window import SettingsWindow
@@ -120,6 +121,7 @@ class MainWindow(QMainWindow):
         self._master_password = None
         
         self._setup_ui()
+        self.setWindowIcon(gui_icons.create_application_icon())
         self._setup_menus()
         self._setup_toolbar()
         self._setup_statusbar()
@@ -553,7 +555,8 @@ def run_gui():
     app.setApplicationName("Horizon Password Manager")
     app.setApplicationVersion("1.0.0")
     app.setOrganizationName("Horizon Password Manager")
-    
+    app.setWindowIcon(gui_icons.create_application_icon())
+
     # Apply theme
     theme_manager.apply_theme(app)
     

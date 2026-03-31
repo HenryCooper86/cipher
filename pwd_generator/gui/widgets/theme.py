@@ -1,7 +1,7 @@
 """
-Theme Manager for Horizon Password Generator GUI
+Theme Manager for Horizon Password Manager GUI
 
-Supports Dark and Light themes with modern styling.
+Supports dark and light themes with calibrated sRGB-friendly palettes.
 """
 
 from pwd_generator.gui import (
@@ -17,112 +17,86 @@ class ThemeColors:
     """Color definitions for themes."""
     
     DARK = {
-        # Background colors
-        "background_primary": "#1e1e2e",
-        "background_secondary": "#2d2d3d",
-        "background_tertiary": "#3d3d4d",
-        "background_input": "#2d2d3d",
-        
-        # Text colors
-        "text_primary": "#e0e0e0",
-        "text_secondary": "#a0a0a0",
-        "text_disabled": "#606060",
+        # Surfaces (cool neutral, consistent luminance steps)
+        "background_primary": "#16161e",
+        "background_secondary": "#1a1b26",
+        "background_tertiary": "#24283b",
+        "background_input": "#1a1b26",
+        # Text
+        "text_primary": "#c0caf5",
+        "text_secondary": "#a9b1d6",
+        "text_disabled": "#565f89",
         "text_link": "#7aa2f7",
-        
-        # Accent colors
+        # Accents
         "accent_primary": "#7aa2f7",
         "accent_secondary": "#9ece6a",
         "accent_warning": "#e0af68",
         "accent_danger": "#f7768e",
         "accent_success": "#9ece6a",
-        
-        # Strength meter colors
+        # Strength meter
         "strength_weak": "#f7768e",
         "strength_fair": "#e0af68",
         "strength_good": "#7dcfff",
         "strength_strong": "#9ece6a",
         "strength_very_strong": "#73daca",
-        
-        # Border colors
-        "border_primary": "#3d3d4d",
+        # Borders
+        "border_primary": "#3b4261",
         "border_focus": "#7aa2f7",
-        "border_hover": "#5d5d6d",
-        
-        # Selection
+        "border_hover": "#565f89",
+        # Selection (menus / native)
         "selection_bg": "#7aa2f7",
-        "selection_text": "#1e1e2e",
-        
+        "selection_text": "#16161e",
         # Scrollbar
-        "scrollbar_bg": "#2d2d3d",
-        "scrollbar_handle": "#4d4d5d",
-        
-        # Button
-        "button_bg": "#3d3d4d",
-        "button_hover": "#4d4d5d",
-        "button_pressed": "#5d5d6d",
-        "button_text": "#e0e0e0",
-        
-        # Table/List
-        "table_header_bg": "#2d2d3d",
-        "table_header_text": "#e0e0e0",
-        "table_row_alt": "#252535",
-        # Row highlight when selected (distinct from neutral greys)
-        "table_row_selected": "#2a4a7a",
-        "table_row_selected_text": "#e8eef8",
+        "scrollbar_bg": "#1a1b26",
+        "scrollbar_handle": "#414868",
+        # Buttons
+        "button_bg": "#292e42",
+        "button_hover": "#343b54",
+        "button_pressed": "#3d4469",
+        "button_text": "#c0caf5",
+        # Tables / lists
+        "table_header_bg": "#1a1b26",
+        "table_header_text": "#c0caf5",
+        "table_row_alt": "#1f2335",
+        "table_row_selected": "#283457",
+        "table_row_selected_text": "#c7d9ff",
     }
     
     LIGHT = {
-        # Background colors
-        "background_primary": "#fafafa",
+        "background_primary": "#f5f6f8",
         "background_secondary": "#ffffff",
-        "background_tertiary": "#f0f0f0",
+        "background_tertiary": "#eceef2",
         "background_input": "#ffffff",
-        
-        # Text colors
-        "text_primary": "#1a1a2e",
-        "text_secondary": "#4a4a5a",
-        "text_disabled": "#a0a0a0",
-        "text_link": "#3a6ea5",
-        
-        # Accent colors
-        "accent_primary": "#3a6ea5",
-        "accent_secondary": "#4caf50",
-        "accent_warning": "#ff9800",
-        "accent_danger": "#f44336",
-        "accent_success": "#4caf50",
-        
-        # Strength meter colors
-        "strength_weak": "#f44336",
-        "strength_fair": "#ff9800",
-        "strength_good": "#2196f3",
-        "strength_strong": "#4caf50",
-        "strength_very_strong": "#00bcd4",
-        
-        # Border colors
-        "border_primary": "#e0e0e0",
-        "border_focus": "#3a6ea5",
-        "border_hover": "#c0c0c0",
-        
-        # Selection
-        "selection_bg": "#3a6ea5",
+        "text_primary": "#1a1d26",
+        "text_secondary": "#5c6370",
+        "text_disabled": "#9aa0a8",
+        "text_link": "#2d5a8c",
+        "accent_primary": "#3b6ea8",
+        "accent_secondary": "#3d8b40",
+        "accent_warning": "#d97706",
+        "accent_danger": "#d32f2f",
+        "accent_success": "#2e7d32",
+        "strength_weak": "#c62828",
+        "strength_fair": "#e65100",
+        "strength_good": "#1565c0",
+        "strength_strong": "#2e7d32",
+        "strength_very_strong": "#00838f",
+        "border_primary": "#d1d5db",
+        "border_focus": "#3b6ea8",
+        "border_hover": "#b8bec8",
+        "selection_bg": "#3b6ea8",
         "selection_text": "#ffffff",
-        
-        # Scrollbar
-        "scrollbar_bg": "#f0f0f0",
-        "scrollbar_handle": "#c0c0c0",
-        
-        # Button
-        "button_bg": "#e0e0e0",
-        "button_hover": "#d0d0d0",
-        "button_pressed": "#c0c0c0",
-        "button_text": "#1a1a2e",
-        
-        # Table/List
-        "table_header_bg": "#f0f0f0",
-        "table_header_text": "#1a1a2e",
-        "table_row_alt": "#fafafa",
-        "table_row_selected": "#b6d4f2",
-        "table_row_selected_text": "#14233d",
+        "scrollbar_bg": "#eceef2",
+        "scrollbar_handle": "#c5cad3",
+        "button_bg": "#eceef2",
+        "button_hover": "#e2e5ea",
+        "button_pressed": "#d6dae0",
+        "button_text": "#1a1d26",
+        "table_header_bg": "#eceef2",
+        "table_header_text": "#1a1d26",
+        "table_row_alt": "#f9fafb",
+        "table_row_selected": "#c5daf5",
+        "table_row_selected_text": "#142033",
     }
 
 
@@ -176,7 +150,11 @@ class ThemeManager:
     def get_style_sheet(self) -> str:
         """Generate the complete application stylesheet."""
         c = self._colors
-        
+        from pwd_generator.gui import icons
+
+        cb_checked = icons.checkbox_indicator_checked_url(self._current_theme, c)
+        rb_checked = icons.radio_indicator_checked_url(self._current_theme, c)
+
         return f"""
             /* Global Styles */
             QWidget {{
@@ -345,8 +323,8 @@ class ThemeManager:
                 background-color: {c['background_secondary']};
                 color: {c['text_primary']};
                 border: 1px solid {c['border_primary']};
-                selection-background-color: {c['accent_primary']};
-                selection-color: white;
+                selection-background-color: {c['table_row_selected']};
+                selection-color: {c['table_row_selected_text']};
             }}
             
             /* SpinBox */
@@ -371,18 +349,23 @@ class ThemeManager:
             QCheckBox::indicator {{
                 width: 18px;
                 height: 18px;
+            }}
+            
+            QCheckBox::indicator:unchecked {{
                 border: 2px solid {c['border_primary']};
                 border-radius: 4px;
                 background-color: {c['background_input']};
             }}
             
-            QCheckBox::indicator:hover {{
+            QCheckBox::indicator:unchecked:hover {{
                 border-color: {c['border_hover']};
             }}
             
             QCheckBox::indicator:checked {{
-                background-color: {c['accent_primary']};
-                border-color: {c['accent_primary']};
+                width: 18px;
+                height: 18px;
+                border: none;
+                image: url("{cb_checked}");
             }}
             
             /* RadioButton */
@@ -404,8 +387,10 @@ class ThemeManager:
             }}
             
             QRadioButton::indicator:checked {{
-                background-color: {c['accent_primary']};
-                border-color: {c['accent_primary']};
+                width: 18px;
+                height: 18px;
+                border: none;
+                image: url("{rb_checked}");
             }}
             
             /* GroupBox */
@@ -654,8 +639,8 @@ class ThemeManager:
             }}
             
             QListWidget::item:selected {{
-                background-color: {c['accent_primary']};
-                color: white;
+                background-color: {c['table_row_selected']};
+                color: {c['table_row_selected_text']};
             }}
             
             QListWidget::item:hover:!selected {{
@@ -680,8 +665,10 @@ class ThemeManager:
         palette.setColor(QPalette.ColorRole.Text, QColor(c['text_primary']))
         palette.setColor(QPalette.ColorRole.Button, QColor(c['button_bg']))
         palette.setColor(QPalette.ColorRole.ButtonText, QColor(c['button_text']))
-        palette.setColor(QPalette.ColorRole.Highlight, QColor(c['accent_primary']))
-        palette.setColor(QPalette.ColorRole.HighlightedText, QColor('#ffffff'))
+        palette.setColor(QPalette.ColorRole.Highlight, QColor(c['table_row_selected']))
+        palette.setColor(
+            QPalette.ColorRole.HighlightedText, QColor(c['table_row_selected_text'])
+        )
         palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor(c['text_disabled']))
         palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor(c['text_disabled']))
         
