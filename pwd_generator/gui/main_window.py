@@ -132,7 +132,7 @@ class MainWindow(QMainWindow):
     
     def _setup_ui(self):
         """Set up the main UI."""
-        self.setWindowTitle("Horizon Password Generator")
+        self.setWindowTitle("Horizon Password Manager")
         self.setMinimumSize(880, 560)
         self.resize(1100, 720)
 
@@ -179,12 +179,14 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(12, 20, 12, 16)
         layout.setSpacing(10)
 
-        self._sidebar_title = QLabel("Horizon")
+        self._sidebar_title = QLabel("Horizon Password\nManager")
+        self._sidebar_title.setWordWrap(True)
         self._sidebar_title.setStyleSheet(
             f"""
-            font-size: 20px;
+            font-size: 15px;
             font-weight: 700;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
+            line-height: 1.25;
             padding: 4px 4px 12px 4px;
             color: {theme_manager.get_color('text_primary')};
         """
@@ -408,9 +410,10 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_sidebar_title"):
             self._sidebar_title.setStyleSheet(
                 f"""
-            font-size: 20px;
+            font-size: 15px;
             font-weight: 700;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
+            line-height: 1.25;
             padding: 4px 4px 12px 4px;
             color: {theme_manager.get_color('text_primary')};
         """
@@ -513,8 +516,8 @@ class MainWindow(QMainWindow):
         """Show about dialog."""
         QMessageBox.about(
             self,
-            "About Horizon Password Generator",
-            "<h3>Horizon Password Generator</h3>"
+            "About Horizon Password Manager",
+            "<h3>Horizon Password Manager</h3>"
             "<p>A secure password generator with encrypted history, "
             "breach checking, and password analysis.</p>"
             "<p>Features:</p>"
@@ -547,9 +550,9 @@ def run_gui():
     import sys
     
     app = QApplication(sys.argv)
-    app.setApplicationName("Horizon Password Generator")
+    app.setApplicationName("Horizon Password Manager")
     app.setApplicationVersion("1.0.0")
-    app.setOrganizationName("Horizon")
+    app.setOrganizationName("Horizon Password Manager")
     
     # Apply theme
     theme_manager.apply_theme(app)

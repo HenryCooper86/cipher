@@ -66,7 +66,9 @@ class ThemeColors:
         "table_header_bg": "#2d2d3d",
         "table_header_text": "#e0e0e0",
         "table_row_alt": "#252535",
-        "table_row_selected": "#3d3d5d",
+        # Row highlight when selected (distinct from neutral greys)
+        "table_row_selected": "#2a4a7a",
+        "table_row_selected_text": "#e8eef8",
     }
     
     LIGHT = {
@@ -119,7 +121,8 @@ class ThemeColors:
         "table_header_bg": "#f0f0f0",
         "table_header_text": "#1a1a2e",
         "table_row_alt": "#fafafa",
-        "table_row_selected": "#e0e8f0",
+        "table_row_selected": "#b6d4f2",
+        "table_row_selected_text": "#14233d",
     }
 
 
@@ -504,6 +507,12 @@ class ThemeManager:
             
             QTableWidget::item:selected {{
                 background-color: {c['table_row_selected']};
+                color: {c['table_row_selected_text']};
+            }}
+            
+            QTableWidget::item:selected:active {{
+                background-color: {c['table_row_selected']};
+                color: {c['table_row_selected_text']};
             }}
             
             QHeaderView::section {{
