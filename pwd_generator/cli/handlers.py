@@ -22,6 +22,43 @@ def _escape_wifi_value(value: str) -> str:
     return value
 
 
+def handle_save(args, gen: SecurePasswordGenerator) -> None:
+    """Save an existing password to the encrypted vault."""
+    if not gen.encryption_manager or not gen.encryption_manager.cipher:
+        print("[ERROR] Vault not initialized. Please unlock with master password first.")
+        sys.exit(1)
+
+    password = args.password
+    service = args.service or safe_input("Service name: ").strip() or "Unspecified"
+    notes = args.notes or safe_input("Notes (optional): ").strip()
+
+    # Analyze the password first
+    stats = gen.get_password_stats(password)
+    
+    print(f"\n{'=' * 60}")
+    print("                    SAVE PASSWORD")
+    print(f"{'=' * 60}")
+    print(f"Service:   {service}")
+    print(f"Length:    {stats['length']} characters")
+    print(f"Entropy:   {stats['entropy']:.1f} bits")
+    print(f"Strength:  {stats['strength']}")
+    print(f"{'=' * 60}")
+
+    if stats['strength'] in ['Weak', 'Very Weak']:
+        print("\n[WARNING] This password has weak strength!")
+        print("Consider generating a stronger password instead.")
+        if not prompt_yes_no("Save anyway?", default=False):
+            print("Cancelled.")
+            return
+
+    try:
+        gen.add_to_history(password, service, notes)
+        print("\n[OK] Password saved to encrypted vault")
+    except Exception as e:
+        print(f"[ERROR] Failed to save password: {e}")
+        sys.exit(1)
+
+
 def handle_generate(args, gen: SecurePasswordGenerator) -> None:
     quiet = getattr(args, "quiet", False)
     json_output = getattr(args, "json", False)

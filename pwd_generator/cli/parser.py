@@ -111,6 +111,17 @@ Examples:
     )
     analyze_parser.add_argument("password", type=str, help="Password to analyze")
 
+    save_parser = subparsers.add_parser(
+        "save", aliases=["sv"], help="Save an existing password to vault"
+    )
+    save_parser.add_argument("password", type=str, help="Password to save")
+    save_parser.add_argument(
+        "--service", type=str, default="", help="Service name (e.g., gmail, bank)"
+    )
+    save_parser.add_argument(
+        "--notes", type=str, default="", help="Notes (optional)"
+    )
+
     batch_parser = subparsers.add_parser(
         "batch", aliases=["b"], help="Generate multiple passwords"
     )

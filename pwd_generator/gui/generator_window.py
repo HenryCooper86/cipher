@@ -528,6 +528,35 @@ class AnalyzerPanel(QWidget):
         qr_row.addStretch()
         layout.addLayout(qr_row)
 
+        # Save to vault section
+        save_group = QGroupBox("Save to Vault")
+        save_layout = QVBoxLayout(save_group)
+
+        info_label = QLabel(
+            "Enter an existing password above and click 'Save' to store it securely."
+        )
+        info_label.setStyleSheet(
+            f"color: {theme_manager.get_color('text_secondary')};"
+        )
+        save_layout.addWidget(info_label)
+
+        save_input_row = QHBoxLayout()
+        save_input_row.setSpacing(10)
+        self.save_service_edit = QLineEdit()
+        self.save_service_edit.setPlaceholderText("Service name (e.g., gmail, bank)")
+        self.save_service_edit.setMinimumWidth(200)
+        save_input_row.addWidget(QLabel("Service:"))
+        save_input_row.addWidget(self.save_service_edit, 1)
+        save_layout.addLayout(save_input_row)
+
+        self.save_btn = QPushButton("Save Password to Vault")
+        self.save_btn.setObjectName("primaryButton")
+        self.save_btn.setMinimumHeight(40)
+        self.save_btn.clicked.connect(self._save_to_vault)
+        save_layout.addWidget(self.save_btn)
+
+        layout.addWidget(save_group)
+
         layout.addStretch()
 
     def _analyze_password(self, password: str):
@@ -613,6 +642,41 @@ class AnalyzerPanel(QWidget):
 
     def _save_qr_code(self) -> None:
         save_qr_png_to_file(self, self.password_editor.get_password())
+
+    def _save_to_vault(self) -> None:
+        """Save the entered password to the encrypted vault."""
+        password = self.password_editor.get_password()
+        if not password:
+            QMessageBox.warning(self, "No Password", "Please enter a password to save.")
+            return
+
+        if not self._generator or not self._generator.encryption_manager or not self._generator.encryption_manager.cipher:
+            QMessageBox.warning(
+                self,
+                "Vault Locked",
+                "Please unlock your vault with your master password first."
+            )
+            return
+
+        service = self.save_service_edit.text().strip() or "Unspecified"
+
+        try:
+            self._generator.add_to_history(password, service)
+            QMessageBox.information(
+                self,
+                "Saved",
+                f"Password for '{service}' saved to your vault."
+            )
+            # Clear the fields after saving
+            self.password_editor.set_password("")
+            self.save_service_edit.clear()
+        except Exception as e:
+            logger.error(f"Failed to save password to vault: {e}")
+            QMessageBox.critical(
+                self,
+                "Save Failed",
+                f"Failed to save password: {e}"
+            )
 
     def refresh_theme_styles(self) -> None:
         """Reapply theme-dependent inline styles after global theme change."""

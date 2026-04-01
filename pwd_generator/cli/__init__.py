@@ -43,6 +43,7 @@ from .handlers import (
     handle_pattern,
     handle_profile,
     handle_qr,
+    handle_save,
     handle_template,
 )
 from .parser import create_parser
@@ -57,6 +58,8 @@ def dispatch_cli_command(args, gen: SecurePasswordGenerator, parser) -> None:
         handle_generate(args, gen)
     elif args.command in ["analyze", "a"]:
         handle_analyze(args, gen)
+    elif args.command in ["save", "sv"]:
+        handle_save(args, gen)
     elif args.command in ["batch", "b"]:
         handle_batch(args, gen)
     elif args.command in ["history", "h"]:
