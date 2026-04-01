@@ -27,7 +27,6 @@ from pwd_generator.gui import (
     QVBoxLayout,
     QWidget,
 )
-from pwd_generator.gui.widgets import theme_manager
 from pwd_generator.profiles import PasswordProfile, ProfileManager
 
 
@@ -36,10 +35,9 @@ class SettingsWindow(QWidget):
     Settings and configuration window.
 
     Features:
-    - Theme toggle (Dark/Light)
+    - Window settings
     - Password policy settings
     - Profile management
-    - Import/Export settings
     """
 
     def __init__(self, generator: SecurePasswordGenerator, parent=None):
@@ -90,30 +88,6 @@ class SettingsWindow(QWidget):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setSpacing(16)
-
-        # Theme group
-        theme_group = QGroupBox("Theme")
-        theme_layout = QVBoxLayout(theme_group)
-
-        theme_row = QHBoxLayout()
-        theme_row.addWidget(QLabel("Color Theme:"))
-
-        self.theme_combo = QComboBox()
-        self.theme_combo.addItems(["Dark", "Light"])
-        self.theme_combo.setCurrentText(theme_manager.current_theme.capitalize())
-        self.theme_combo.currentIndexChanged.connect(self._on_theme_changed)
-        theme_row.addWidget(self.theme_combo)
-
-        theme_row.addStretch()
-        theme_layout.addLayout(theme_row)
-
-        self._theme_preview_label = QLabel("Changes will apply immediately")
-        self._theme_preview_label.setStyleSheet(
-            f"color: {theme_manager.get_color('text_secondary')}; font-style: italic;"
-        )
-        theme_layout.addWidget(self._theme_preview_label)
-
-        layout.addWidget(theme_group)
 
         # Window group
         window_group = QGroupBox("Window")
@@ -383,30 +357,6 @@ class SettingsWindow(QWidget):
         else:
             QMessageBox.warning(self, "Error", "Failed to save profile.")
 
-    def refresh_theme_styles(self) -> None:
-        """Reapply theme-dependent inline styles after global theme change."""
-        self._theme_preview_label.setStyleSheet(
-            f"color: {theme_manager.get_color('text_secondary')}; font-style: italic;"
-        )
-        self.theme_combo.blockSignals(True)
-        try:
-            self.theme_combo.setCurrentIndex(
-                0 if theme_manager.current_theme == "dark" else 1
-            )
-        finally:
-            self.theme_combo.blockSignals(False)
-
-    def _on_theme_changed(self, index: int):
-        """Handle theme change."""
-        theme_name = "dark" if index == 0 else "light"
-        theme_manager.set_theme(theme_name)
-        theme_manager.apply_theme(self._get_app())
-
-    def _get_app(self):
-        """Get the QApplication instance."""
-        from pwd_generator.gui import QApplication
-        return QApplication.instance()
-
     def _save_settings(self):
         """Save all settings."""
         # Update config
@@ -425,7 +375,6 @@ class SettingsWindow(QWidget):
         self._config["policy"]["expiration_days"] = self.expiration_spin.value()
 
         # Appearance settings
-        self._config["theme"] = self.theme_combo.currentText().lower()
         self._config["remember_geometry"] = self.remember_geometry_cb.isChecked()
 
         # Save config
