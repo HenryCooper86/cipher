@@ -532,13 +532,13 @@ class AnalyzerPanel(QWidget):
         save_group = QGroupBox("Save to Vault")
         save_layout = QVBoxLayout(save_group)
 
-        info_label = QLabel(
+        self._save_info_label = QLabel(
             "Enter an existing password above and click 'Save' to store it securely."
         )
-        info_label.setStyleSheet(
+        self._save_info_label.setStyleSheet(
             f"color: {theme_manager.get_color('text_secondary')};"
         )
-        save_layout.addWidget(info_label)
+        save_layout.addWidget(self._save_info_label)
 
         save_input_row = QHBoxLayout()
         save_input_row.setSpacing(10)
@@ -703,6 +703,10 @@ class AnalyzerPanel(QWidget):
         else:
             self.breach_result.setStyleSheet("")
         self.strength_meter.refresh_from_theme()
+        # Refresh Save to Vault section info label
+        self._save_info_label.setStyleSheet(
+            f"color: {theme_manager.get_color('text_secondary')};"
+        )
 
 
 class GeneratorWindow(QWidget):
