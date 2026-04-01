@@ -1,8 +1,7 @@
 """Tests for QR code error paths and edge cases."""
-import pytest
-from unittest.mock import patch, MagicMock, mock_open
-import io
+from unittest.mock import MagicMock, patch
 
+import pytest
 from pwd_generator import qr_code
 
 
@@ -43,7 +42,7 @@ class TestGenerateQRCodeErrors:
     def test_io_error_during_save(self):
         with patch.object(qr_code, '_ensure_qrcode', return_value=True):
             mock_qr = MagicMock()
-            mock_qr.QRCode.return_value.make_image.return_value.save.side_effect = IOError("Disk full")
+            mock_qr.QRCode.return_value.make_image.return_value.save.side_effect = OSError("Disk full")
             with patch.dict('sys.modules', {'qrcode': mock_qr}):
                 result = qr_code.generate_qr_code("test")
                 assert result is None

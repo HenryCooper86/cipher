@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 import sys
 
+logger = logging.getLogger(__name__)
+
 
 def main() -> None:
     """Run CLI with arguments, or interactive mode when argv has only the program name."""
@@ -14,20 +16,29 @@ def main() -> None:
 
             main_cli()
         else:
-            from pwd_generator.logging_config import setup_logging
+            from pwd_generator.logging_config import (
+                quiet_console_for_interactive_menu,
+                setup_logging,
+            )
             from pwd_generator.paths import default_log_file_path
 
             setup_logging(str(default_log_file_path()), verbose=False)
+            quiet_console_for_interactive_menu()
             from pwd_generator.interactive import main_interactive
 
             main_interactive()
     except KeyboardInterrupt:
         print("\n\nInterrupted. Goodbye!")
         sys.exit(0)
+    except BrokenPipeError:
+        try:
+            sys.stdout.close()
+        except OSError:
+            pass
+        sys.exit(0)
     except SystemExit:
         raise
     except Exception as e:
-        logger = logging.getLogger(__name__)
         logger.exception("Unexpected error in main")
         print(f"\nFatal error: {e}")
         sys.exit(1)

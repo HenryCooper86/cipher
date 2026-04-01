@@ -4,19 +4,35 @@ Password History Window
 Window for managing encrypted password history.
 """
 
+from datetime import datetime
+
+from pwd_generator import SecurePasswordGenerator
 from pwd_generator.gui import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QLabel, QPushButton, QLineEdit, QGroupBox, QFrame,
-    QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
-    QMessageBox, QFileDialog, QDialog, QTextEdit, QComboBox,
-    QDialogButtonBox, QDateEdit, Qt, QApplication, QClipboard,
-    QSizePolicy, QColor, QBrush, QCheckBox,
+    QAbstractItemView,
+    QApplication,
+    QBrush,
+    QCheckBox,
+    QColor,
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QFileDialog,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    Qt,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
 from pwd_generator.gui.widgets import theme_manager
-from pwd_generator import SecurePasswordGenerator
-from pwd_generator.exceptions import HistoryError, EncryptionError
-from datetime import datetime
-from pathlib import Path
 
 # Column indices (0 = checkbox)
 COL_SELECT = 0
@@ -33,7 +49,7 @@ HISTORY_INDEX_ROLE = Qt.ItemDataRole.UserRole + 1
 class HistoryWindow(QWidget):
     """
     Password history browser and manager.
-    
+
     Features:
     - View all password entries
     - Search and filter
@@ -41,40 +57,40 @@ class HistoryWindow(QWidget):
     - Delete entries
     - Export history
     """
-    
+
     def __init__(self, generator: SecurePasswordGenerator, parent=None):
         super().__init__(parent)
         self._generator = generator
         self._setup_ui()
         self._load_history()
-    
+
     def _setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
-        
+
         # Search and filter bar
         search_layout = QHBoxLayout()
-        
+
         search_label = QLabel("Search:")
         search_layout.addWidget(search_label)
-        
+
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("Search by service name or notes...")
         self.search_edit.textChanged.connect(self._filter_history)
         search_layout.addWidget(self.search_edit, 1)
-        
+
         # Filter by strength
         filter_label = QLabel("Strength:")
         search_layout.addWidget(filter_label)
-        
+
         self.strength_filter = QComboBox()
         self.strength_filter.addItems(["All", "Weak", "Fair", "Good", "Strong", "Very Strong"])
         self.strength_filter.currentIndexChanged.connect(self._filter_history)
         search_layout.addWidget(self.strength_filter)
-        
+
         layout.addLayout(search_layout)
-        
+
         # History table (column 0 = checkbox)
         self.history_table = QTableWidget()
         self.history_table.setMinimumHeight(200)
@@ -90,7 +106,7 @@ class HistoryWindow(QWidget):
         self.history_table.setVerticalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOn
         )
-        
+
         header = self.history_table.horizontalHeader()
         header.setSectionResizeMode(COL_SELECT, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(COL_SERVICE, QHeaderView.ResizeMode.ResizeToContents)
@@ -98,14 +114,14 @@ class HistoryWindow(QWidget):
         header.setSectionResizeMode(COL_STRENGTH, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(COL_ENTROPY, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(COL_CREATED, QHeaderView.ResizeMode.Fixed)
-        
+
         self.history_table.setColumnWidth(COL_SELECT, 76)
         self.history_table.setColumnWidth(COL_STRENGTH, 100)
         self.history_table.setColumnWidth(COL_ENTROPY, 88)
         self.history_table.setColumnWidth(COL_CREATED, 130)
-        
+
         layout.addWidget(self.history_table, 1)
-        
+
         # Action buttons (equal width)
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(10)
@@ -159,14 +175,14 @@ class HistoryWindow(QWidget):
         self.export_csv_btn.clicked.connect(lambda: self._export_history("csv"))
         export_layout.addWidget(self.export_csv_btn, 1)
         export_layout.addStretch(1)
-        
+
         # Stats label
         self.stats_label = QLabel("Total: 0 entries")
         self.stats_label.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')};")
         export_layout.addWidget(self.stats_label)
-        
+
         layout.addLayout(export_layout)
-    
+
     def _load_history(self):
         """Load history from the generator."""
         pairs = list(enumerate(self._generator.history))
@@ -326,7 +342,7 @@ class HistoryWindow(QWidget):
         entry = self._generator.history[hist_idx]
         dialog = EntryDetailDialog(entry, self)
         dialog.exec()
-    
+
     def _update_stats(self, count: int):
         """Update the stats label."""
         total = len(self._generator.history)
@@ -334,7 +350,7 @@ class HistoryWindow(QWidget):
             self.stats_label.setText(f"Total: {total} entries")
         else:
             self.stats_label.setText(f"Showing: {count} of {total} entries")
-    
+
     def _copy_selected_password(self):
         """Copy password from the single checked or selected row."""
         row = self._resolve_single_action_row()
@@ -406,7 +422,7 @@ class HistoryWindow(QWidget):
             if self._generator.delete_from_history(hist_idx):
                 self._load_history()
                 QMessageBox.information(self, "Deleted", "Entry deleted successfully.")
-    
+
     def _export_history(self, format: str):
         """Export history to file."""
         file_path, _ = QFileDialog.getSaveFileName(
@@ -415,10 +431,10 @@ class HistoryWindow(QWidget):
             f"password_history.{format}",
             f"{format.upper()} Files (*.{format})"
         )
-        
+
         if not file_path:
             return
-        
+
         try:
             if format == "json":
                 from pwd_generator.export import export_history_json
@@ -426,7 +442,7 @@ class HistoryWindow(QWidget):
             else:
                 from pwd_generator.export import export_history_csv
                 success = export_history_csv(self._generator.history, file_path, include_passwords=True)
-            
+
             if success:
                 QMessageBox.information(
                     self, "Export Complete", f"Saved passwords exported to {file_path}"
@@ -444,7 +460,7 @@ class HistoryWindow(QWidget):
             f"color: {theme_manager.get_color('text_secondary')};"
         )
         self._populate_table(self._filtered_pairs())
-    
+
     def refresh(self):
         """Refresh the history display."""
         self._load_history()
@@ -452,21 +468,21 @@ class HistoryWindow(QWidget):
 
 class EntryDetailDialog(QDialog):
     """Dialog showing detailed entry information."""
-    
+
     def __init__(self, entry: dict, parent=None):
         super().__init__(parent)
         self._entry = entry
         self._setup_ui()
-    
+
     def _setup_ui(self):
         meta = self._entry.get("metadata", {})
-        
+
         self.setWindowTitle(f"Password Details - {meta.get('service', 'Unknown')}")
         self.setMinimumWidth(500)
-        
+
         layout = QVBoxLayout(self)
         layout.setSpacing(16)
-        
+
         # Service
         service_layout = QHBoxLayout()
         service_layout.addWidget(QLabel("Service:"))
@@ -475,34 +491,34 @@ class EntryDetailDialog(QDialog):
         service_layout.addWidget(self.service_label)
         service_layout.addStretch()
         layout.addLayout(service_layout)
-        
+
         # Password
         password_group = QGroupBox("Password")
         password_layout = QVBoxLayout(password_group)
-        
+
         from pwd_generator.gui.widgets.password_display import PasswordDisplay
         self.password_display = PasswordDisplay()
         self.password_display.set_password(self._entry.get("password", ""))
         password_layout.addWidget(self.password_display)
-        
+
         layout.addWidget(password_group)
-        
+
         # Details grid
         details_group = QGroupBox("Details")
         details_layout = QGridLayout(details_group)
         details_layout.setSpacing(8)
-        
+
         row = 0
         details_layout.addWidget(QLabel("Strength:"), row, 0)
         strength_label = QLabel(meta.get("strength", "-"))
-        strength_label.setStyleSheet(f"font-weight: bold;")
+        strength_label.setStyleSheet("font-weight: bold;")
         details_layout.addWidget(strength_label, row, 1)
-        
+
         row += 1
         details_layout.addWidget(QLabel("Entropy:"), row, 0)
         entropy_label = QLabel(f"{meta.get('entropy', 0):.1f} bits")
         details_layout.addWidget(entropy_label, row, 1)
-        
+
         row += 1
         details_layout.addWidget(QLabel("Created:"), row, 0)
         created = meta.get("created_at", "")
@@ -514,18 +530,18 @@ class EntryDetailDialog(QDialog):
                 pass
         created_label = QLabel(created)
         details_layout.addWidget(created_label, row, 1)
-        
+
         row += 1
         details_layout.addWidget(QLabel("Notes:"), row, 0)
         notes = meta.get("notes", "")
         notes_label = QLabel(notes or "No notes")
         notes_label.setWordWrap(True)
         details_layout.addWidget(notes_label, row, 1)
-        
+
         details_layout.setColumnStretch(1, 1)
-        
+
         layout.addWidget(details_group)
-        
+
         # Buttons
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         button_box.rejected.connect(self.reject)

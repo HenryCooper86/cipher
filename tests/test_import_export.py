@@ -1,13 +1,13 @@
-import pytest
-import os
-import json
 import csv
+import json
+
+import pytest
 from pwd_generator.import_export import (
+    export_to_1password_csv,
+    export_to_bitwarden_csv,
+    export_to_lastpass_csv,
     import_from_csv,
     import_from_json,
-    export_to_1password_csv,
-    export_to_lastpass_csv,
-    export_to_bitwarden_csv,
 )
 
 
@@ -63,7 +63,7 @@ def test_export_to_1password_csv(temp_dir):
     assert export_to_1password_csv(history, str(csv_file))
     assert csv_file.exists()
 
-    with open(csv_file, "r") as f:
+    with open(csv_file) as f:
         reader = csv.DictReader(f)
         rows = list(reader)
         assert len(rows) == 1

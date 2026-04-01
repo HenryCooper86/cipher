@@ -1,8 +1,8 @@
-import secrets
-import string
 import logging
 import re
-from typing import List, Optional, Tuple
+import secrets
+import string
+
 from pwd_generator.constants import SPECIAL_CHARS
 
 logger = logging.getLogger(__name__)
@@ -14,11 +14,11 @@ class PatternGenerator:
         self.verbs = ["run", "jump", "walk", "sing", "dance", "write", "read", "play", "work", "think"]
         self.adjectives = ["big", "small", "fast", "slow", "bright", "dark", "happy", "sad", "new", "old"]
         self.special_chars = SPECIAL_CHARS
-    
+
     def generate_from_pattern(self, pattern: str) -> str:
         """
         Generate password from pattern.
-        
+
         Patterns:
         - [noun], [verb], [adj] - word lists
         - [word] - random word
@@ -29,7 +29,7 @@ class PatternGenerator:
         """
         result = []
         i = 0
-        
+
         while i < len(pattern):
             if pattern[i] == '[':
                 end = pattern.find(']', i)
@@ -37,7 +37,7 @@ class PatternGenerator:
                     result.append(pattern[i])
                     i += 1
                     continue
-                
+
                 token = pattern[i+1:end]
                 replacement = self._replace_token(token)
                 result.append(replacement)
@@ -45,13 +45,13 @@ class PatternGenerator:
             else:
                 result.append(pattern[i])
                 i += 1
-        
+
         return ''.join(result)
-    
+
     def _replace_token(self, token: str) -> str:
         """Replace pattern token with actual value."""
         token_lower = token.lower()
-        
+
         if token_lower == 'noun':
             return secrets.choice(self.nouns).capitalize()
         elif token_lower == 'verb':
@@ -84,7 +84,7 @@ class PatternGenerator:
             return secrets.choice(string.digits)
         else:
             return f'[{token}]'
-    
+
     def _extract_number(self, token: str, prefix: str, default: int) -> int:
         """Extract number from token like '4letters' -> 4 or 'letters' -> default."""
         match = re.search(r'^(\d+)', token)
@@ -93,11 +93,11 @@ class PatternGenerator:
         return default
 
 
-def validate_pattern(pattern: str) -> Tuple[bool, str]:
+def validate_pattern(pattern: str) -> tuple[bool, str]:
     """Validate pattern syntax."""
     if not pattern:
         return False, "Pattern cannot be empty"
-    
+
     brackets = 0
     for char in pattern:
         if char == '[':
@@ -106,8 +106,8 @@ def validate_pattern(pattern: str) -> Tuple[bool, str]:
             brackets -= 1
             if brackets < 0:
                 return False, "Unmatched closing bracket"
-    
+
     if brackets != 0:
         return False, "Unmatched opening bracket"
-    
+
     return True, "Valid pattern"

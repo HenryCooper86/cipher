@@ -1,5 +1,4 @@
 """Extended tests for filters."""
-import pytest
 from datetime import datetime, timedelta
 
 from pwd_generator import filters
@@ -19,7 +18,7 @@ class TestFilterByDate:
         now = datetime.now()
         old_date = (now - timedelta(days=10)).isoformat()
         new_date = (now - timedelta(days=1)).isoformat()
-        
+
         history = [
             {"metadata": {"created_at": old_date}},
             {"metadata": {"created_at": new_date}},
@@ -31,7 +30,7 @@ class TestFilterByDate:
         now = datetime.now()
         old_date = (now - timedelta(days=10)).isoformat()
         new_date = (now - timedelta(days=1)).isoformat()
-        
+
         history = [
             {"metadata": {"created_at": old_date}},
             {"metadata": {"created_at": new_date}},
@@ -46,7 +45,7 @@ class TestFilterByDate:
             (now - timedelta(days=5)).isoformat(),
             (now - timedelta(days=1)).isoformat(),
         ]
-        
+
         history = [{"metadata": {"created_at": d}} for d in dates]
         result = filters.filter_history_by_date(
             history,

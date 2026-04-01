@@ -1,10 +1,10 @@
 """Tests for generator edge cases and error paths."""
-import pytest
-from unittest.mock import patch, MagicMock
 from datetime import datetime, timedelta
+from unittest.mock import MagicMock, patch
 
+import pytest
+from pwd_generator.exceptions import EncryptionError, HistoryError, ValidationError
 from pwd_generator.generator import SecurePasswordGenerator
-from pwd_generator.exceptions import ValidationError, HistoryError, EncryptionError
 
 
 class TestGeneratorInit:
@@ -16,14 +16,14 @@ class TestGeneratorInit:
             mock_profile.policy = {'min_length': 20}
             mock_profile.template = 'readable'
             mock_pm.return_value.get_profile.return_value = mock_profile
-            
+
             gen = SecurePasswordGenerator(profile='banking')
             assert gen.policy['min_length'] == 20
 
     def test_init_with_invalid_profile(self):
         with patch('pwd_generator.profiles.ProfileManager') as mock_pm:
             mock_pm.return_value.get_profile.return_value = None
-            
+
             gen = SecurePasswordGenerator(profile='nonexistent')
             assert gen.profile_template is None
 
@@ -40,11 +40,11 @@ class TestGenerateRandomString:
     def test_generate_with_profile_template(self):
         gen = SecurePasswordGenerator()
         gen.profile_template = 'readable'
-        
+
         mock_template = MagicMock()
         mock_template.min_length = 12
         mock_template.generate.return_value = 'GeneratedPass123'
-        
+
         with patch('pwd_generator.templates.get_template', return_value=mock_template):
             result = gen.generate_random_string(10)
             assert result == 'GeneratedPass123'
@@ -53,14 +53,14 @@ class TestGenerateRandomString:
     def test_generate_length_below_min(self):
         gen = SecurePasswordGenerator()
         gen.policy['min_length'] = 12
-        
+
         with patch.object(gen, 'validate', return_value=(True, "Valid")):
             result = gen.generate_random_string(8)
             assert len(result) >= 12
 
     def test_generate_max_attempts_exceeded(self):
         gen = SecurePasswordGenerator()
-        
+
         with patch.object(gen, 'validate', return_value=(False, "Always fails")):
             with pytest.raises(ValidationError, match="Unable to generate"):
                 gen.generate_random_string(16, max_attempts=5)
@@ -120,7 +120,7 @@ class TestAddToHistory:
         gen.validator = MagicMock()
         gen.validator.calculate_strength_score = MagicMock(return_value="Strong")
         gen.validator.calculate_entropy = MagicMock(return_value=80.0)
-        
+
         # Should return False when encryption not initialized
         result = gen.add_to_history("password", "service", "notes")
         assert result is False
@@ -132,7 +132,7 @@ class TestAddToHistory:
         gen.validator = MagicMock()
         gen.validator.calculate_strength_score = MagicMock(return_value="Strong")
         gen.validator.calculate_entropy = MagicMock(return_value=80.0)
-        
+
         result = gen.add_to_history(
             "password",
             "service",
@@ -140,7 +140,7 @@ class TestAddToHistory:
             qr_code_path="/path/to/qr.png",
             qr_code_type="wifi"
         )
-        
+
         assert result is True
         assert len(gen.history) == 1
         assert gen.history[0]["metadata"]["qr_code_path"] == "/path/to/qr.png"
@@ -154,11 +154,11 @@ class TestAddToHistory:
         gen.validator.calculate_strength_score = MagicMock(return_value="Strong")
         gen.validator.calculate_entropy = MagicMock(return_value=80.0)
         gen.policy['max_history_size'] = 3
-        
+
         # Add more entries than max
         for i in range(5):
             gen.add_to_history(f"password{i}", f"service{i}", "")
-        
+
         assert len(gen.history) == 3
         # Most recent should be first
         assert gen.history[0]["metadata"]["service"] == "service4"
@@ -172,10 +172,10 @@ class TestAddToHistory:
         gen.validator = MagicMock()
         gen.validator.calculate_strength_score = MagicMock(return_value="Strong")
         gen.validator.calculate_entropy = MagicMock(return_value=80.0)
-        
+
         with pytest.raises(HistoryError, match="Failed to add password"):
             gen.add_to_history("password", "service", "notes")
-        
+
         # Entry should be rolled back (removed from history)
         assert len(gen.history) == 0
 
@@ -188,7 +188,7 @@ class TestDeleteFromHistory:
         gen.encryption_manager = MagicMock()
         gen.encryption_manager.cipher = None
         gen.history = [{"password": "test", "metadata": {"service": "test"}}]
-        
+
         result = gen.delete_from_history(0)
         assert result is False
 
@@ -200,7 +200,7 @@ class TestDeleteFromHistory:
             {"password": "test1", "metadata": {"service": "service1"}},
             {"password": "test2", "metadata": {"service": "service2"}},
         ]
-        
+
         result = gen.delete_from_history(0)
         assert result is True
         assert len(gen.history) == 1
@@ -211,7 +211,7 @@ class TestDeleteFromHistory:
         gen.encryption_manager = MagicMock()
         gen.encryption_manager.cipher = MagicMock()
         gen.history = [{"password": "test", "metadata": {"service": "test"}}]
-        
+
         result = gen.delete_from_history(99)
         assert result is False
 
@@ -224,7 +224,7 @@ class TestUpdateHistoryEntry:
         gen.encryption_manager = MagicMock()
         gen.encryption_manager.cipher = None
         gen.history = [{"password": "test", "metadata": {"service": "old", "notes": ""}}]
-        
+
         result = gen.update_history_entry(0, service="new")
         assert result is False
 
@@ -233,7 +233,7 @@ class TestUpdateHistoryEntry:
         gen.encryption_manager = MagicMock()
         gen.encryption_manager.cipher = MagicMock()
         gen.history = [{"password": "test", "metadata": {"service": "old", "notes": ""}}]
-        
+
         result = gen.update_history_entry(0, service="new")
         assert result is True
         assert gen.history[0]["metadata"]["service"] == "new"
@@ -243,7 +243,7 @@ class TestUpdateHistoryEntry:
         gen.encryption_manager = MagicMock()
         gen.encryption_manager.cipher = MagicMock()
         gen.history = [{"password": "test", "metadata": {"service": "test", "notes": ""}}]
-        
+
         result = gen.update_history_entry(0, notes="new notes")
         assert result is True
         assert gen.history[0]["metadata"]["notes"] == "new notes"
@@ -253,7 +253,7 @@ class TestUpdateHistoryEntry:
         gen.encryption_manager = MagicMock()
         gen.encryption_manager.cipher = MagicMock()
         gen.history = [{"password": "test", "metadata": {"service": "old", "notes": ""}}]
-        
+
         result = gen.update_history_entry(0, service="new", notes="new notes")
         assert result is True
         assert gen.history[0]["metadata"]["service"] == "new"
@@ -269,7 +269,7 @@ class TestGetExpiredPasswords:
         gen.history = [
             {"metadata": {"created_at": datetime.now().isoformat()}}
         ]
-        
+
         result = gen.get_expired_passwords()
         assert len(result) == 0
 
@@ -280,7 +280,7 @@ class TestGetExpiredPasswords:
         gen.history = [
             {"metadata": {"created_at": old_date, "service": "expired"}}
         ]
-        
+
         result = gen.get_expired_passwords()
         assert len(result) == 1
         assert result[0][1]["metadata"]["service"] == "expired"
@@ -291,7 +291,7 @@ class TestGetExpiredPasswords:
         gen.history = [
             {"metadata": {"service": "no-date"}}
         ]
-        
+
         result = gen.get_expired_passwords()
         assert len(result) == 0
 
@@ -301,7 +301,7 @@ class TestGetExpiredPasswords:
         gen.history = [
             {"metadata": {"created_at": "invalid-date", "service": "bad-date"}}
         ]
-        
+
         result = gen.get_expired_passwords()
         assert len(result) == 0
 
@@ -312,7 +312,7 @@ class TestBatchGenerate:
     def test_batch_random(self):
         gen = SecurePasswordGenerator()
         gen.generate_random_string = MagicMock(return_value="random123")
-        
+
         result = gen.batch_generate(3, 16, "random", show_progress=False)
         assert len(result) == 3
         assert all(r == "random123" for r in result)
@@ -320,7 +320,7 @@ class TestBatchGenerate:
     def test_batch_passphrase(self):
         gen = SecurePasswordGenerator()
         gen.generate_passphrase = MagicMock(return_value="word1-word2-word3")
-        
+
         result = gen.batch_generate(2, 20, "passphrase", show_progress=False)
         assert len(result) == 2
         # generate_passphrase should be called with words = max(4, 20 // 4) = 5
@@ -329,7 +329,7 @@ class TestBatchGenerate:
     def test_batch_pin(self):
         gen = SecurePasswordGenerator()
         gen.generate_pin = MagicMock(return_value="123456")
-        
+
         result = gen.batch_generate(2, 6, "pin", show_progress=False)
         assert len(result) == 2
         gen.generate_pin.assert_called_with(6)
@@ -337,21 +337,21 @@ class TestBatchGenerate:
     def test_batch_pin_long_length(self):
         gen = SecurePasswordGenerator()
         gen.generate_pin = MagicMock(return_value="123456")
-        
-        result = gen.batch_generate(1, 20, "pin", show_progress=False)
+
+        gen.batch_generate(1, 20, "pin", show_progress=False)
         # PIN length should be capped at 6 for long inputs
         gen.generate_pin.assert_called_with(6)
 
     def test_batch_unknown_type(self):
         gen = SecurePasswordGenerator()
-        
+
         with pytest.raises(ValueError, match="Unknown password type"):
             gen.batch_generate(1, 16, "unknown", show_progress=False)
 
     def test_batch_with_progress(self):
         gen = SecurePasswordGenerator()
         gen.generate_random_string = MagicMock(return_value="random123")
-        
+
         with patch('pwd_generator.progress.show_progress') as mock_progress:
             mock_progress.return_value = range(3)
             result = gen.batch_generate(3, 16, "random", show_progress=True)
@@ -364,6 +364,6 @@ class TestClearSensitiveData:
     def test_clear_data(self):
         gen = SecurePasswordGenerator()
         gen.session_generated = {"pass1", "pass2", "pass3"}
-        
+
         gen.clear_sensitive_data()
         assert len(gen.session_generated) == 0

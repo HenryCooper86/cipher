@@ -1,7 +1,6 @@
+
 import pytest
-import os
-import json
-from pwd_generator.profiles import ProfileManager, PasswordProfile
+from pwd_generator.profiles import PasswordProfile, ProfileManager
 
 
 @pytest.fixture

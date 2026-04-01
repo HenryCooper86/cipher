@@ -7,13 +7,12 @@ from __future__ import annotations
 import base64
 import tempfile
 from pathlib import Path
-from typing import Dict, Optional
 
 try:
-    from PyQt6.QtCore import QByteArray, QBuffer, QIODevice
+    from PyQt6.QtCore import QBuffer, QByteArray, QIODevice
     from PyQt6.QtGui import QPainterPath
 except ImportError:
-    from PySide6.QtCore import QByteArray, QBuffer, QIODevice
+    from PySide6.QtCore import QBuffer, QByteArray, QIODevice
     from PySide6.QtGui import QPainterPath
 
 from pwd_generator.gui import (
@@ -37,7 +36,7 @@ def _cache_dir() -> Path:
 
 
 def _checkbox_checked_colors(
-    theme: str, colors: Dict[str, str]
+    theme: str, colors: dict[str, str]
 ) -> tuple:
     inner = QColor(colors.get("checkbox_checked_bg", colors["background_input"]))
     border = QColor(colors.get("checkbox_checked_border", colors["border_focus"]))
@@ -119,7 +118,7 @@ def _make_checkbox_tick_only_pixmap(tick: QColor) -> QPixmap:
     return pm
 
 
-def _pixmap_png_data_uri(pm: QPixmap) -> Optional[str]:
+def _pixmap_png_data_uri(pm: QPixmap) -> str | None:
     ba = QByteArray()
     buf = QBuffer(ba)
     buf.open(QIODevice.OpenModeFlag.WriteOnly)
@@ -135,7 +134,7 @@ def _pixmap_png_data_uri(pm: QPixmap) -> Optional[str]:
     return f'url("data:image/png;base64,{b64}")'
 
 
-def combobox_down_arrow_qss_image(colors: Dict[str, str]) -> str:
+def combobox_down_arrow_qss_image(colors: dict[str, str]) -> str:
     """
     Data-URI PNG for QComboBox::down-arrow (Fusion breaks CSS border triangles).
     Transparent background; chevron uses text_primary.
@@ -172,7 +171,7 @@ def combobox_down_arrow_qss_image(colors: Dict[str, str]) -> str:
     return ""
 
 
-def checkbox_tick_only_qss_image(theme: str, colors: Dict[str, str]) -> str:
+def checkbox_tick_only_qss_image(theme: str, colors: dict[str, str]) -> str:
     """
     PNG data URI for QSS `image:` — tick only, for use over QSS-drawn checked box fill.
     Returns empty string if encoding fails (caller should fall back to full composite).
@@ -183,7 +182,7 @@ def checkbox_tick_only_qss_image(theme: str, colors: Dict[str, str]) -> str:
     return uri if uri is not None else ""
 
 
-def checkbox_indicator_checked_qss_image(theme: str, colors: Dict[str, str]) -> str:
+def checkbox_indicator_checked_qss_image(theme: str, colors: dict[str, str]) -> str:
     """
     Value for QSS `image:` — embeds PNG as data URI so `file://` paths are not required.
     Qt stylesheets often fail to load local file URLs on macOS; data URIs are reliable.
@@ -196,7 +195,7 @@ def checkbox_indicator_checked_qss_image(theme: str, colors: Dict[str, str]) -> 
     return f'url("{checkbox_indicator_checked_url(theme, colors)}")'
 
 
-def checkbox_indicator_checked_url(theme: str, colors: Dict[str, str]) -> str:
+def checkbox_indicator_checked_url(theme: str, colors: dict[str, str]) -> str:
     """
     PNG path as file URL (fallback if in-memory encoding fails).
     """
@@ -218,7 +217,7 @@ def _render_checkbox_checked_png(
     pm.save(str(path), "PNG")
 
 
-def radio_indicator_checked_url(theme: str, colors: Dict[str, str]) -> str:
+def radio_indicator_checked_url(theme: str, colors: dict[str, str]) -> str:
     """Ring + center dot instead of solid fill."""
     accent = QColor(colors["accent_primary"])
     border = QColor(colors["border_focus"])

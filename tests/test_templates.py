@@ -1,9 +1,9 @@
 import pytest
 from pwd_generator.templates import (
+    TEMPLATES,
     PasswordTemplate,
     get_template,
     list_templates,
-    TEMPLATES,
 )
 
 

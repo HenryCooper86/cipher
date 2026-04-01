@@ -1,8 +1,7 @@
+
 import pytest
-import os
-from pathlib import Path
-from pwd_generator.validators import validate_file_path
 from pwd_generator.encryption import EncryptionManager, clear_memory
+from pwd_generator.validators import validate_file_path
 
 
 def test_path_traversal_prevention(temp_dir):

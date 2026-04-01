@@ -1,8 +1,8 @@
 import pytest
 from pwd_generator.filters import (
+    filter_history_by_entropy,
     filter_history_by_service,
     filter_history_by_strength,
-    filter_history_by_entropy,
     sort_history,
 )
 

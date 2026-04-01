@@ -1,12 +1,13 @@
-import pytest
 import os
 from unittest.mock import MagicMock
+
+import pytest
 from pwd_generator.qr_code import (
+    display_qr_code,
     generate_qr_code,
     generate_qr_png_bytes,
     generate_wifi_qr,
     qr_code_to_ascii,
-    display_qr_code,
 )
 
 
@@ -84,7 +85,6 @@ def test_generate_qr_code_absolute_path(temp_dir):
 
 
 def test_wifi_qr_string_format(temp_dir, monkeypatch):
-    import qrcode
 
     mock_qr = MagicMock()
     monkeypatch.setattr("qrcode.QRCode", lambda **kwargs: mock_qr)
@@ -108,7 +108,6 @@ def test_wifi_qr_string_format(temp_dir, monkeypatch):
 def test_wifi_qr_edge_cases(
     temp_dir, monkeypatch, ssid, password, security, hidden, expected
 ):
-    import qrcode
 
     mock_qr = MagicMock()
     monkeypatch.setattr("qrcode.QRCode", lambda **kwargs: mock_qr)

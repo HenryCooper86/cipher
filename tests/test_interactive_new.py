@@ -1,7 +1,8 @@
+from unittest.mock import ANY, MagicMock, patch
+
 import pytest
-from unittest.mock import MagicMock, patch, ANY
-from pwd_generator.interactive import MainMenu
 from pwd_generator import SecurePasswordGenerator
+from pwd_generator.interactive import MainMenu
 
 
 @pytest.fixture

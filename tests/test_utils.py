@@ -1,10 +1,9 @@
 """Tests for utility functions."""
-import pytest
-import sys
 import subprocess
-from io import StringIO
-from unittest.mock import patch, MagicMock, mock_open
+import sys
+from unittest.mock import MagicMock, patch
 
+import pytest
 from pwd_generator import utils
 from pwd_generator.exceptions import ClipboardError
 
@@ -235,9 +234,9 @@ class TestPrintPasswordStats:
             "is_valid": True,
             "validation_message": "Valid"
         }
-        
+
         utils.print_password_stats(mock_gen, "TestPass123!")
-        
+
         captured = capsys.readouterr()
         assert "TestPass123!" in captured.out
         assert "12" in captured.out
@@ -259,8 +258,8 @@ class TestPrintPasswordStats:
             "is_valid": True,
             "validation_message": "Valid"
         }
-        
+
         utils.print_password_stats(mock_gen, "TestPass123")
-        
+
         captured = capsys.readouterr()
         assert "NO" in captured.out

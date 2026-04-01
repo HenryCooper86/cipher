@@ -459,7 +459,7 @@ def handle_profile(args, gen: SecurePasswordGenerator) -> None:
 def handle_audit(args, gen: SecurePasswordGenerator) -> None:
     import json
 
-    from pwd_generator.audit import PasswordAuditor
+    from pwd_generator.audit import PasswordAuditor, format_audit_console_report
 
     auditor = PasswordAuditor(gen)
     report = auditor.generate_audit_report()
@@ -478,45 +478,14 @@ def handle_audit(args, gen: SecurePasswordGenerator) -> None:
         else:
             print(output)
     else:
-        print(f"\n{'=' * 70}")
-        print("                    PASSWORD SECURITY AUDIT")
-        print(f"{'=' * 70}")
-        print(f"\nGenerated: {report['generated_at']}")
-
-        score = report["security_score"]
-        print(f"\nSecurity Score: {score['score']:.1f}/100")
-        print(f"  • Total Passwords: {score['details']['total_passwords']}")
-        print(f"  • Weak Passwords: {score['details']['weak_passwords']}")
-        print(f"  • Duplicate Passwords: {score['details']['duplicate_passwords']}")
-        print(f"  • Expired Passwords: {score['details']['expired_passwords']}")
-
-        if report["duplicates"]:
-            print(f"\n[WARNING]  Duplicate Passwords ({len(report['duplicates'])}):")
-            for dup in report["duplicates"][:10]:
-                length_info = f", length {dup['length']}" if 'length' in dup else ""
-                print(f"   • {dup['password']} (used {dup['count']} times{length_info})")
-
-        if report["weak_passwords"]:
-            print(f"\n[WARNING]  Weak Passwords ({len(report['weak_passwords'])}):")
-            for weak in report["weak_passwords"][:10]:
-                print(f"   • {weak['service']}: {weak['entropy']:.1f} bits")
-
-        if report["expired_passwords"]:
-            print(
-                f"\n[WARNING]  Expired Passwords ({len(report['expired_passwords'])}):"
-            )
-            for exp in report["expired_passwords"][:10]:
-                print(f"   • {exp['service']}: {exp['created_at'][:10]}")
-
-        print(f"\n{'=' * 70}\n")
+        text = format_audit_console_report(report)
+        print(text, end="")
 
         if args.output:
             try:
                 safe_output_path = validate_file_path(args.output)
                 with open(safe_output_path, "w", encoding="utf-8") as f:
-                    f.write("Password Security Audit Report\n")
-                    f.write(f"Generated: {report['generated_at']}\n")
-                    f.write(f"Security Score: {score['score']:.1f}/100\n\n")
+                    f.write(text)
                 print(f"[OK] Report saved to {safe_output_path}")
             except ValueError as e:
                 print(f"[ERROR] Security policy violation - {e}")

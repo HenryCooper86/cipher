@@ -1,11 +1,11 @@
 """Tests for encryption error paths and edge cases."""
-import pytest
 import json
-from unittest.mock import patch, MagicMock, mock_open
 from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
 
+import pytest
 from pwd_generator.encryption import EncryptionManager, clear_memory
-from pwd_generator.exceptions import EncryptionError, ValidationError, HistoryError
+from pwd_generator.exceptions import EncryptionError, HistoryError, ValidationError
 
 
 class TestClearMemory:
@@ -36,7 +36,7 @@ class TestClearMemory:
         class BadByteArray(bytearray):
             def __setitem__(self, key, value):
                 raise RuntimeError("Cannot modify")
-        
+
         data = BadByteArray(b'secret')
         result = clear_memory(data)
         assert result is False
@@ -166,7 +166,7 @@ class TestLoadHistory:
         with patch('builtins.open', mock_open(read_data=b'\x01' + b'\x00' * 16 + b'data')):
             with patch.object(Path, 'exists', return_value=True):
                 with patch.object(em, 'init_encryption_system') as mock_init:
-                    result = em.load_history("password123")
+                    em.load_history("password123")
                     mock_init.assert_called_once()
                     args = mock_init.call_args
                     assert args[1]['use_argon2'] is True
@@ -178,7 +178,7 @@ class TestLoadHistory:
         with patch('builtins.open', mock_open(read_data=b'\xff' + b'\x00' * 16 + b'data')):
             with patch.object(Path, 'exists', return_value=True):
                 with patch.object(em, 'init_encryption_system') as mock_init:
-                    result = em.load_history("password123")
+                    em.load_history("password123")
                     args = mock_init.call_args
                     assert args[1]['use_argon2'] is False
 

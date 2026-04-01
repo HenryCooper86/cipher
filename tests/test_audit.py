@@ -1,5 +1,6 @@
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 from pwd_generator.audit import PasswordAuditor
 from pwd_generator.generator import SecurePasswordGenerator
 
@@ -101,6 +102,8 @@ def test_calculate_security_score(auditor_with_history):
     assert "total_passwords" in score["details"]
     assert "weak_passwords" in score["details"]
     assert "duplicate_passwords" in score["details"]
+    assert "similar_pairs" in score["details"]
+    assert "similar_audit_skipped" in score["details"]
 
 
 def test_generate_audit_report(auditor_with_history):
@@ -110,6 +113,7 @@ def test_generate_audit_report(auditor_with_history):
         "security_score",
         "summary",
         "duplicates",
+        "similar_passwords",
         "weak_passwords",
         "expired_passwords",
         "strength_distribution",

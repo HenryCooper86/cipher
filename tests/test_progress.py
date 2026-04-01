@@ -1,7 +1,4 @@
 """Tests for progress indicators."""
-import pytest
-from io import StringIO
-from unittest.mock import patch, MagicMock
 
 from pwd_generator import progress
 
@@ -50,7 +47,7 @@ class TestProgressBar:
         bar = progress.ProgressBar(10, "Test")
         bar._enabled = True
         bar.finish()
-        captured = capsys.readouterr()
+        capsys.readouterr()
         # Should print completion
 
     def test_finish_disabled(self, capsys):
@@ -89,7 +86,7 @@ class TestShowProgress:
             yield 1
             yield 2
             yield 3
-        
+
         result = list(progress.show_progress(gen(), "Processing"))
         assert result == [1, 2, 3]
 
@@ -98,6 +95,6 @@ class TestShowProgress:
         class NoLenIterable:
             def __iter__(self):
                 return iter([1, 2, 3])
-        
+
         result = list(progress.show_progress(NoLenIterable(), "Processing"))
         assert result == [1, 2, 3]

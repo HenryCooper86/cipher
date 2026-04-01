@@ -4,19 +4,21 @@ Theme manager for the Horizon Cypher GUI.
 Supports dark and light themes with calibrated sRGB-friendly palettes.
 """
 
-from pwd_generator.gui import (
-    QColor, QPalette, QFont, QBrush, QPen,
-    Qt, QApplication,
-)
-from typing import Callable, Dict, List
 import logging
+from typing import Callable
+
+from pwd_generator.gui import (
+    QApplication,
+    QColor,
+    QPalette,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class ThemeColors:
     """Color definitions for themes."""
-    
+
     DARK = {
         # Surfaces (slightly lifted contrast vs prior flat navy)
         "background_primary": "#12131c",
@@ -71,7 +73,7 @@ class ThemeColors:
         "checkbox_checked_border": "#d4e2ff",
         "checkbox_tick": "#ffffff",
     }
-    
+
     LIGHT = {
         "background_primary": "#f5f6f8",
         "background_secondary": "#ffffff",
@@ -119,48 +121,48 @@ class ThemeColors:
 
 class ThemeManager:
     """Manages application theme."""
-    
+
     _instance = None
     _current_theme = "dark"
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
-    
+
     def __init__(self):
         if not hasattr(self, '_initialized'):
             self._initialized = True
             self._colors = ThemeColors.DARK if self._current_theme == "dark" else ThemeColors.LIGHT
-            self._theme_listeners: List[Callable[[], None]] = []
-    
+            self._theme_listeners: list[Callable[[], None]] = []
+
     @classmethod
     def get_instance(cls):
         return cls()
-    
+
     @property
     def current_theme(self) -> str:
         return self._current_theme
-    
+
     @property
-    def colors(self) -> Dict[str, str]:
+    def colors(self) -> dict[str, str]:
         return self._colors
-    
+
     def set_theme(self, theme_name: str) -> None:
         """Set the application theme."""
         theme_name = theme_name.lower()
         if theme_name not in ("dark", "light"):
             raise ValueError(f"Unknown theme: {theme_name}")
-        
+
         self._current_theme = theme_name
         self._colors = ThemeColors.DARK if theme_name == "dark" else ThemeColors.LIGHT
-    
+
     def toggle_theme(self) -> str:
         """Toggle between dark and light theme."""
         new_theme = "light" if self._current_theme == "dark" else "dark"
         self.set_theme(new_theme)
         return new_theme
-    
+
     def get_color(self, name: str) -> str:
         """Get a color value by name."""
         return self._colors.get(name, "#000000")
@@ -169,7 +171,7 @@ class ThemeManager:
         """Register a callable invoked after each successful apply_theme (e.g. refresh inline styles)."""
         if callback not in self._theme_listeners:
             self._theme_listeners.append(callback)
-    
+
     def get_style_sheet(self) -> str:
         """Generate the complete application stylesheet."""
         c = self._colors
@@ -257,26 +259,26 @@ class ThemeManager:
                 font-family: 'Segoe UI', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
                 font-size: 13px;
             }}
-            
+
             QWidget#historyCheckboxHost {{
                 background-color: transparent;
             }}
-            
+
             QMainWindow, QDialog {{
                 background-color: {c['background_primary']};
                 color: {c['text_primary']};
             }}
-            
+
             /* Labels */
             QLabel {{
                 color: {c['text_primary']};
                 background-color: transparent;
             }}
-            
+
             QLabel:disabled {{
                 color: {c['text_disabled']};
             }}
-            
+
             /* Buttons */
             QPushButton {{
                 background-color: {c['button_bg']};
@@ -287,21 +289,21 @@ class ThemeManager:
                 min-height: 36px;
                 font-weight: 500;
             }}
-            
+
             QPushButton:hover {{
                 background-color: {c['button_hover']};
                 border-color: {c['border_hover']};
             }}
-            
+
             QPushButton:pressed {{
                 background-color: {c['button_pressed']};
             }}
-            
+
             QPushButton:disabled {{
                 background-color: {c['background_tertiary']};
                 color: {c['text_disabled']};
             }}
-            
+
             QPushButton#primaryButton {{
                 background-color: {c['accent_primary']};
                 color: #ffffff;
@@ -311,12 +313,12 @@ class ThemeManager:
                 min-height: 36px;
                 text-align: center;
             }}
-            
+
             QPushButton#primaryButton:hover {{
                 background-color: {c['text_link']};
                 color: #ffffff;
             }}
-            
+
             QPushButton#dangerButton {{
                 background-color: {c['accent_danger']};
                 color: #ffffff;
@@ -326,13 +328,13 @@ class ThemeManager:
                 min-height: 36px;
                 text-align: center;
             }}
-            
+
             QPushButton#dangerButton:hover {{
                 color: #ffffff;
                 border: 1px solid {c['border_focus']};
                 background-color: {c['accent_danger']};
             }}
-            
+
             QPushButton#successButton {{
                 background-color: {c['accent_success']};
                 color: #ffffff;
@@ -342,7 +344,7 @@ class ThemeManager:
                 min-height: 36px;
                 text-align: center;
             }}
-            
+
             QPushButton#navButton {{
                 text-align: center;
                 min-height: 40px;
@@ -353,25 +355,25 @@ class ThemeManager:
                 border: 1px solid transparent;
                 border-radius: 8px;
             }}
-            
+
             QPushButton#navButton:hover {{
                 background-color: {c['background_tertiary']};
                 border-color: {c['border_primary']};
             }}
-            
+
             QPushButton#navButton:checked {{
                 background-color: {c['accent_primary']};
                 color: #ffffff;
                 border-color: {c['accent_primary']};
                 font-weight: 600;
             }}
-            
+
             QPushButton#navButton:checked:hover {{
                 background-color: {c['text_link']};
                 border-color: {c['text_link']};
                 color: #ffffff;
             }}
-            
+
             /* Input Fields */
             QLineEdit, QTextEdit, QPlainTextEdit {{
                 background-color: {c['background_input']};
@@ -382,21 +384,21 @@ class ThemeManager:
                 selection-background-color: {c['selection_bg']};
                 selection-color: {c['selection_text']};
             }}
-            
+
             QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {{
                 border-color: {c['border_focus']};
             }}
-            
+
             QLineEdit:disabled, QTextEdit:disabled {{
                 background-color: {c['background_tertiary']};
                 color: {c['text_disabled']};
             }}
-            
+
             QLineEdit#passwordField {{
                 font-family: 'Courier New', monospace;
                 font-size: 14px;
             }}
-            
+
             /* ComboBox */
             QComboBox {{
                 background-color: {c['background_input']};
@@ -406,20 +408,20 @@ class ThemeManager:
                 padding: 8px;
                 min-height: 20px;
             }}
-            
+
             QComboBox:hover {{
                 border-color: {c['border_hover']};
             }}
-            
+
             QComboBox:focus {{
                 border-color: {c['border_focus']};
             }}
-            
+
             QComboBox::drop-down {{
                 border: none;
                 width: 28px;
             }}
-            
+
             QComboBox::down-arrow {{
                 width: 12px;
                 height: 8px;
@@ -429,7 +431,7 @@ class ThemeManager:
                 subcontrol-position: center right;
                 margin-right: 8px;
             }}
-            
+
             QComboBox QAbstractItemView {{
                 background-color: {c['background_secondary']};
                 color: {c['text_primary']};
@@ -437,7 +439,7 @@ class ThemeManager:
                 selection-background-color: {c['table_row_selected']};
                 selection-color: {c['table_row_selected_text']};
             }}
-            
+
             /* SpinBox */
             QSpinBox, QDoubleSpinBox {{
                 background-color: {c['background_input']};
@@ -446,54 +448,54 @@ class ThemeManager:
                 border-radius: 6px;
                 padding: 8px;
             }}
-            
+
             QSpinBox:focus, QDoubleSpinBox:focus {{
                 border-color: {c['border_focus']};
             }}
-            
+
             /* CheckBox */
             QCheckBox {{
                 color: {c['text_primary']};
                 spacing: 8px;
             }}
-            
+
             QCheckBox::indicator {{
                 width: 18px;
                 height: 18px;
                 subcontrol-origin: padding;
                 subcontrol-position: center center;
             }}
-            
+
             QCheckBox::indicator:unchecked {{
                 border: 2px solid {c['checkbox_unchecked_border']};
                 border-radius: 4px;
                 background-color: {c['checkbox_unchecked_bg']};
             }}
-            
+
             QCheckBox::indicator:unchecked:hover {{
                 border-color: {c['border_hover']};
                 background-color: {c['checkbox_unchecked_hover_bg']};
             }}
-            
+
             QCheckBox::indicator:unchecked:focus {{
                 border: 2px solid {c['border_focus']};
                 background-color: {c['checkbox_unchecked_bg']};
             }}
-            
+
             QCheckBox::indicator:unchecked:pressed {{
                 border-color: {c['border_focus']};
                 background-color: {c['background_tertiary']};
             }}
-            
+
             /* Checked: QSS draws box; tick-only PNG overlays (full PNG if tick encode fails). */
             {checkbox_indicator_checked_css}
-            
+
             /* RadioButton */
             QRadioButton {{
                 color: {c['text_primary']};
                 spacing: 8px;
             }}
-            
+
             QRadioButton::indicator {{
                 width: 18px;
                 height: 18px;
@@ -501,18 +503,18 @@ class ThemeManager:
                 border-radius: 9px;
                 background-color: {c['background_input']};
             }}
-            
+
             QRadioButton::indicator:hover {{
                 border-color: {c['border_hover']};
             }}
-            
+
             QRadioButton::indicator:checked {{
                 width: 18px;
                 height: 18px;
                 border: none;
                 image: url("{rb_checked}");
             }}
-            
+
             /* GroupBox */
             QGroupBox {{
                 color: {c['text_primary']};
@@ -522,18 +524,18 @@ class ThemeManager:
                 margin-top: 14px;
                 padding-top: 14px;
             }}
-            
+
             QGroupBox::title {{
                 subcontrol-origin: margin;
                 left: 10px;
                 padding: 0 5px;
             }}
-            
+
             QGroupBox QLabel, QGroupBox QCheckBox {{
                 font-weight: normal;
                 color: {c['text_primary']};
             }}
-            
+
             /* TabWidget */
             QTabWidget::pane {{
                 border: 1px solid {c['border_primary']};
@@ -541,12 +543,12 @@ class ThemeManager:
                 background-color: {c['background_secondary']};
                 padding-top: 6px;
             }}
-            
+
             QTabWidget::tab-bar {{
                 left: 8px;
                 alignment: left;
             }}
-            
+
             QTabBar::tab {{
                 background-color: {c['background_tertiary']};
                 color: {c['text_primary']};
@@ -560,7 +562,7 @@ class ThemeManager:
                 margin-right: 2px;
                 min-height: 20px;
             }}
-            
+
             QTabBar::tab:selected {{
                 background-color: {c['background_secondary']};
                 border-top: 1px solid {c['border_primary']};
@@ -569,52 +571,52 @@ class ThemeManager:
                 border-bottom: 1px solid {c['background_secondary']};
                 margin-bottom: -1px;
             }}
-            
+
             QTabBar::tab:hover:!selected {{
                 background-color: {c['background_primary']};
             }}
-            
+
             /* ScrollBar */
             QScrollBar:vertical {{
                 background-color: {c['scrollbar_bg']};
                 width: 12px;
                 border-radius: 6px;
             }}
-            
+
             QScrollBar::handle:vertical {{
                 background-color: {c['scrollbar_handle']};
                 border-radius: 6px;
                 min-height: 30px;
             }}
-            
+
             QScrollBar::handle:vertical:hover {{
                 background-color: {c['border_hover']};
             }}
-            
+
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                 height: 0px;
             }}
-            
+
             QScrollBar:horizontal {{
                 background-color: {c['scrollbar_bg']};
                 height: 12px;
                 border-radius: 6px;
             }}
-            
+
             QScrollBar::handle:horizontal {{
                 background-color: {c['scrollbar_handle']};
                 border-radius: 6px;
                 min-width: 30px;
             }}
-            
+
             QScrollBar::handle:horizontal:hover {{
                 background-color: {c['border_hover']};
             }}
-            
+
             QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
                 width: 0px;
             }}
-            
+
             /* TableWidget */
             QTableWidget {{
                 background-color: {c['background_secondary']};
@@ -623,21 +625,21 @@ class ThemeManager:
                 border-radius: 8px;
                 gridline-color: {c['border_primary']};
             }}
-            
+
             QTableWidget::item {{
                 padding: 8px;
             }}
-            
+
             QTableWidget::item:selected {{
                 background-color: {c['table_row_selected']};
                 color: {c['table_row_selected_text']};
             }}
-            
+
             QTableWidget::item:selected:active {{
                 background-color: {c['table_row_selected']};
                 color: {c['table_row_selected_text']};
             }}
-            
+
             QTableCornerButton::section {{
                 background-color: {c['table_header_bg']};
                 border: none;
@@ -645,7 +647,7 @@ class ThemeManager:
                 border-right: 1px solid {c['border_primary']};
                 padding: 8px;
             }}
-            
+
             QHeaderView::section {{
                 background-color: {c['table_header_bg']};
                 color: {c['table_header_text']};
@@ -654,7 +656,7 @@ class ThemeManager:
                 padding: 8px;
                 font-weight: bold;
             }}
-            
+
             /* ProgressBar */
             QProgressBar {{
                 background-color: {c['background_tertiary']};
@@ -663,18 +665,18 @@ class ThemeManager:
                 text-align: center;
                 color: {c['text_primary']};
             }}
-            
+
             QProgressBar::chunk {{
                 border-radius: 4px;
             }}
-            
+
             /* Slider */
             QSlider::groove:horizontal {{
                 background-color: {c['background_tertiary']};
                 height: 6px;
                 border-radius: 3px;
             }}
-            
+
             QSlider::handle:horizontal {{
                 background-color: {c['accent_primary']};
                 width: 16px;
@@ -682,76 +684,76 @@ class ThemeManager:
                 margin: -5px 0;
                 border-radius: 8px;
             }}
-            
+
             QSlider::handle:horizontal:hover {{
                 background-color: {c['accent_primary']};
             }}
-            
+
             /* ScrollArea */
             QScrollArea {{
                 background-color: transparent;
                 border: none;
             }}
-            
+
             QScrollArea > QWidget > QWidget {{
                 background-color: transparent;
             }}
-            
+
             /* Frame */
             QFrame {{
                 background-color: transparent;
             }}
-            
+
             QFrame#cardFrame {{
                 background-color: {c['background_secondary']};
                 border: 1px solid {c['border_primary']};
                 border-radius: 8px;
             }}
-            
+
             /* Menu */
             QMenuBar {{
                 background-color: {c['background_secondary']};
                 color: {c['text_primary']};
                 border-bottom: 1px solid {c['border_primary']};
             }}
-            
+
             QMenuBar::item {{
                 padding: 8px 12px;
             }}
-            
+
             QMenuBar::item:selected {{
                 background-color: {c['accent_primary']};
                 color: {c['selection_text']};
             }}
-            
+
             QMenu {{
                 background-color: {c['background_secondary']};
                 color: {c['text_primary']};
                 border: 1px solid {c['border_primary']};
             }}
-            
+
             QMenu::item {{
                 padding: 8px 24px;
             }}
-            
+
             QMenu::item:selected {{
                 background-color: {c['accent_primary']};
                 color: {c['selection_text']};
             }}
-            
+
             QMenu::separator {{
                 height: 1px;
                 background-color: {c['border_primary']};
                 margin: 4px 8px;
             }}
-            
+
             /* StatusBar */
             QStatusBar {{
                 background-color: {c['background_secondary']};
                 color: {c['text_secondary']};
                 border-top: 1px solid {c['border_primary']};
             }}
-            
+
             /* ToolTip */
             QToolTip {{
                 background-color: {c['background_tertiary']};
@@ -760,20 +762,20 @@ class ThemeManager:
                 border-radius: 4px;
                 padding: 4px;
             }}
-            
+
             /* Splitter */
             QSplitter::handle {{
                 background-color: {c['border_primary']};
             }}
-            
+
             QSplitter::handle:horizontal {{
                 width: 1px;
             }}
-            
+
             QSplitter::handle:vertical {{
                 height: 1px;
             }}
-            
+
             /* ListWidget */
             QListWidget {{
                 background-color: {c['background_secondary']};
@@ -781,29 +783,29 @@ class ThemeManager:
                 border: 1px solid {c['border_primary']};
                 border-radius: 8px;
             }}
-            
+
             QListWidget::item {{
                 padding: 10px 12px;
             }}
-            
+
             QListWidget::item:selected {{
                 background-color: {c['table_row_selected']};
                 color: {c['table_row_selected_text']};
             }}
-            
+
             QListWidget::item:hover:!selected {{
                 background-color: {c['background_tertiary']};
             }}
         """
-    
+
     def apply_theme(self, app: QApplication) -> None:
         """Apply the current theme to the application."""
         app.setStyleSheet(self.get_style_sheet())
-        
+
         # Set palette for native widgets
         palette = QPalette()
         c = self._colors
-        
+
         palette.setColor(QPalette.ColorRole.Window, QColor(c['background_primary']))
         palette.setColor(QPalette.ColorRole.WindowText, QColor(c['text_primary']))
         palette.setColor(QPalette.ColorRole.Base, QColor(c['background_secondary']))
@@ -819,7 +821,7 @@ class ThemeManager:
         )
         palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor(c['text_disabled']))
         palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor(c['text_disabled']))
-        
+
         app.setPalette(palette)
 
         for cb in self._theme_listeners:

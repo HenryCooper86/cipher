@@ -1,17 +1,15 @@
 import hashlib
 import logging
-from typing import Tuple, Optional, Dict, Any
-import urllib.request
 import urllib.error
-
-from pwd_generator.exceptions import NetworkError
+import urllib.request
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 def check_password_breach(
     password: str, use_cache: bool = True
-) -> Tuple[bool, Dict[str, Any]]:
+) -> tuple[bool, dict[str, Any]]:
     """
     Check if password has been breached using Have I Been Pwned API (k-anonymity).
 

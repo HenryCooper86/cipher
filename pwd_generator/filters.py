@@ -1,13 +1,13 @@
 import logging
-from typing import List, Dict, Any, Optional, Callable
-from datetime import datetime, timedelta
+from datetime import datetime
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 
-def filter_history_by_date(history: List[Dict], 
+def filter_history_by_date(history: list[dict],
                           start_date: Optional[datetime] = None,
-                          end_date: Optional[datetime] = None) -> List[Dict]:
+                          end_date: Optional[datetime] = None) -> list[dict]:
     filtered = []
     for entry in history:
         try:
@@ -23,16 +23,16 @@ def filter_history_by_date(history: List[Dict],
     return filtered
 
 
-def filter_history_by_service(history: List[Dict], service_query: str) -> List[Dict]:
+def filter_history_by_service(history: list[dict], service_query: str) -> list[dict]:
     query = service_query.lower()
     return [e for e in history if query in e.get('metadata', {}).get('service', '').lower()]
 
 
-def filter_history_by_strength(history: List[Dict], min_strength: Optional[str] = None) -> List[Dict]:
+def filter_history_by_strength(history: list[dict], min_strength: Optional[str] = None) -> list[dict]:
     strength_order = {'Weak': 1, 'Fair': 2, 'Good': 3, 'Strong': 4, 'Very Strong': 5}
     if not min_strength:
         return history
-    
+
     min_level = strength_order.get(min_strength, 0)
     filtered = []
     for entry in history:
@@ -42,18 +42,18 @@ def filter_history_by_strength(history: List[Dict], min_strength: Optional[str] 
     return filtered
 
 
-def filter_history_by_entropy(history: List[Dict], min_entropy: float) -> List[Dict]:
+def filter_history_by_entropy(history: list[dict], min_entropy: float) -> list[dict]:
     return [e for e in history if e.get('metadata', {}).get('entropy', 0) >= min_entropy]
 
 
-def sort_history(history: List[Dict], 
+def sort_history(history: list[dict],
                 sort_by: str = 'date',
-                reverse: bool = True) -> List[Dict]:
+                reverse: bool = True) -> list[dict]:
     if not history:
         return history
-    
+
     sorted_history = history.copy()
-    
+
     if sort_by == 'date':
         def get_date_key(x):
             try:
@@ -77,5 +77,5 @@ def sort_history(history: List[Dict],
             key=lambda x: x.get('metadata', {}).get('entropy', 0),
             reverse=reverse
         )
-    
+
     return sorted_history

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-import secrets
-import string
 import argparse
 import math
+import secrets
+import string
 import sys
 
 SPECIAL_CHARS = "@#$!?^&*~()[]=-_."
@@ -41,7 +41,7 @@ def calculate_entropy(password):
     if any(c.isupper() for c in password): pool_size += 26
     if any(c.isdigit() for c in password): pool_size += 10
     if any(c in SPECIAL_CHARS for c in password): pool_size += len(SPECIAL_CHARS)
-    
+
     if pool_size == 0: return 0
     return math.log2(pool_size) * len(password)
 
@@ -49,7 +49,7 @@ def generate_password(length=16, use_upper=True, use_lower=True, use_digits=True
     """Generate a secure random password."""
     if length < 8:
         print("Warning: Password length < 8 is not secure.")
-    
+
     chars = ''
     if use_upper: chars += string.ascii_uppercase
     if use_lower: chars += string.ascii_lowercase
@@ -70,7 +70,7 @@ def generate_password(length=16, use_upper=True, use_lower=True, use_digits=True
     remaining = length - len(password)
     for _ in range(remaining):
         password.append(secrets.choice(chars))
-    
+
     # Shuffle to avoid predictable patterns
     secrets.SystemRandom().shuffle(password)
     return ''.join(password)
@@ -84,7 +84,7 @@ def generate_passphrase(words=4, separator='-'):
         if secrets.choice([True, False]):
             word = word.capitalize()
         passphrase_words.append(word)
-    
+
     # Add a number and special char for better complexity
     return separator.join(passphrase_words) + str(secrets.randbelow(100)) + secrets.choice(SPECIAL_CHARS)
 
@@ -100,9 +100,9 @@ def interactive_mode():
     print("2. Generate Passphrase (e.g. Correct-Horse-Battery-Staple)")
     print("3. Generate PIN")
     print("4. Exit")
-    
+
     choice = input("\nEnter choice (1-4): ").strip()
-    
+
     if choice == '1':
         try:
             length = int(input("Length (default 16): ") or 16)
@@ -111,7 +111,7 @@ def interactive_mode():
             print(f"Entropy:  {calculate_entropy(pwd):.1f} bits")
         except ValueError:
             print("Invalid length.")
-            
+
     elif choice == '2':
         try:
             words = int(input("Number of words (default 4): ") or 4)
@@ -128,7 +128,7 @@ def interactive_mode():
             print(f"\nPIN: {pin}")
         except ValueError:
             print("Invalid length.")
-            
+
     elif choice == '4':
         sys.exit(0)
     else:

@@ -1,7 +1,7 @@
 import io
 import logging
-from typing import Optional
 from pathlib import Path
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ def generate_qr_code(
 
         logger.info(f"Generated QR code: {abs_path}")
         return str(abs_path)
-    except (IOError, OSError) as e:
+    except OSError as e:
         logger.error(f"File system error during QR code generation: {e}")
         return None
     except Exception as e:
@@ -144,7 +144,7 @@ def generate_qr_png_bytes(
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         return buf.getvalue()
-    except (IOError, OSError, TypeError, ValueError) as e:
+    except (OSError, TypeError, ValueError) as e:
         logger.error("Error building QR PNG bytes: %s", e)
         return None
     except Exception as e:
@@ -225,8 +225,9 @@ def display_qr_code(qr_path: str) -> bool:
         return False
 
     try:
-        from PIL import Image
         import os
+
+        from PIL import Image
 
         if not os.path.exists(qr_path):
             logger.error(f"QR code file not found: {qr_path}")
@@ -239,7 +240,7 @@ def display_qr_code(qr_path: str) -> bool:
             return True
         except Exception:
             # If display fails, at least confirm file exists
-            logger.info(f"QR code saved but cannot display (no GUI available)")
+            logger.info("QR code saved but cannot display (no GUI available)")
             return False
     except ImportError:
         logger.warning("PIL not available for displaying QR code")

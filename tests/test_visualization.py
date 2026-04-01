@@ -1,10 +1,10 @@
 import pytest
 from pwd_generator.visualization import (
+    display_character_breakdown,
+    display_strength_meter,
+    format_character_breakdown,
     get_strength_color,
     get_strength_emoji,
-    display_strength_meter,
-    display_character_breakdown,
-    format_character_breakdown,
 )
 
 

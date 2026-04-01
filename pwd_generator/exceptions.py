@@ -1,6 +1,9 @@
+from typing import Optional
+
+
 class PasswordGeneratorError(Exception):
     """Base exception for all password generator errors."""
-    def __init__(self, message: str, details: dict = None):
+    def __init__(self, message: str, details: Optional[dict] = None):
         super().__init__(message)
         self.message = message
         self.details = details or {}

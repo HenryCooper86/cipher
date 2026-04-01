@@ -1,7 +1,7 @@
-import pytest
-import sys
 from unittest.mock import MagicMock, patch
-from pwd_generator.interactive import safe_input, safe_getpass, main_interactive
+
+import pytest
+from pwd_generator.interactive import main_interactive, safe_getpass, safe_input
 
 
 def test_safe_input_interrupt(monkeypatch):

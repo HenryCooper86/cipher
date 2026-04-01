@@ -1,8 +1,6 @@
+
 import pytest
-import json
-import os
-from pathlib import Path
-from pwd_generator.config import load_config, save_config, create_default_config
+from pwd_generator.config import create_default_config, load_config, save_config
 from pwd_generator.constants import DEFAULT_POLICY
 
 

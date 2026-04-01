@@ -1,9 +1,9 @@
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from pwd_generator.dependency_checker import (
     check_and_install_package,
-    ensure_qrcode,
     ensure_pyyaml,
+    ensure_qrcode,
 )
 
 
@@ -63,6 +63,7 @@ def test_install_package_managed_env(mock_subprocess, mock_import):
 
 def test_install_package_timeout():
     import subprocess
+
     from pwd_generator.dependency_checker import check_and_install_package
 
     with patch(

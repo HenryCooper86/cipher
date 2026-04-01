@@ -1,5 +1,6 @@
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 from pwd_generator.age_calculator import (
     calculate_password_age,
     check_expiration,

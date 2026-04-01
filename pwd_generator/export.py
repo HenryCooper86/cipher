@@ -1,15 +1,14 @@
-import json
 import csv
+import json
 import logging
-from typing import List, Dict, Any, Optional
-from pathlib import Path
 from datetime import datetime
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 
 def export_passwords_json(
-    passwords: List[str], filename: str, metadata: Optional[List[Dict]] = None
+    passwords: list[str], filename: str, metadata: Optional[list[dict]] = None
 ) -> bool:
     try:
         data = {
@@ -29,7 +28,7 @@ def export_passwords_json(
 
         logger.info(f"Exported {len(passwords)} passwords to JSON: {filename}")
         return True
-    except (IOError, OSError) as e:
+    except OSError as e:
         logger.error(f"File I/O error during JSON export: {e}")
         return False
     except (TypeError, ValueError) as e:
@@ -38,7 +37,7 @@ def export_passwords_json(
 
 
 def export_passwords_csv(
-    passwords: List[str], filename: str, metadata: Optional[List[Dict]] = None
+    passwords: list[str], filename: str, metadata: Optional[list[dict]] = None
 ) -> bool:
     try:
         with open(filename, "w", newline="", encoding="utf-8") as f:
@@ -74,7 +73,7 @@ def export_passwords_csv(
 
         logger.info(f"Exported {len(passwords)} passwords to CSV: {filename}")
         return True
-    except (IOError, OSError) as e:
+    except OSError as e:
         logger.error(f"File I/O error during CSV export: {e}")
         return False
     except (TypeError, ValueError, csv.Error) as e:
@@ -83,7 +82,7 @@ def export_passwords_csv(
 
 
 def export_history_json(
-    history: List[Dict], filename: str, include_passwords: bool = True
+    history: list[dict], filename: str, include_passwords: bool = True
 ) -> bool:
     try:
         data = {
@@ -105,7 +104,7 @@ def export_history_json(
 
         logger.info(f"Exported {len(history)} history entries to JSON: {filename}")
         return True
-    except (IOError, OSError) as e:
+    except OSError as e:
         logger.error(f"File I/O error during history JSON export: {e}")
         return False
     except (TypeError, ValueError) as e:
@@ -114,7 +113,7 @@ def export_history_json(
 
 
 def export_history_csv(
-    history: List[Dict], filename: str, include_passwords: bool = True
+    history: list[dict], filename: str, include_passwords: bool = True
 ) -> bool:
     try:
         with open(filename, "w", newline="", encoding="utf-8") as f:
@@ -141,7 +140,7 @@ def export_history_csv(
 
         logger.info(f"Exported {len(history)} history entries to CSV: {filename}")
         return True
-    except (IOError, OSError) as e:
+    except OSError as e:
         logger.error(f"File I/O error during history CSV export: {e}")
         return False
     except (TypeError, ValueError, csv.Error) as e:

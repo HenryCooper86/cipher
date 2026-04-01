@@ -1,26 +1,22 @@
+import shutil
 import sys
 import time
-import getpass
-import shutil
-import subprocess
-import platform
-import os
 from pathlib import Path
 
-from pwd_generator import SecurePasswordGenerator, EncryptionError, ValidationError
-from pwd_generator.utils import (
-    print_password_stats,
-    copy_to_clipboard,
-    safe_input,
-    safe_getpass,
-    prompt_yes_no,
-)
+from pwd_generator import EncryptionError, SecurePasswordGenerator, ValidationError
 from pwd_generator.config import load_config
+from pwd_generator.utils import (
+    copy_to_clipboard,
+    print_password_stats,
+    prompt_yes_no,
+    safe_getpass,
+    safe_input,
+)
 from pwd_generator.validators import (
     validate_file_path,
+    validate_length,
     validate_positive_int,
     validate_string,
-    validate_length,
 )
 
 
@@ -55,7 +51,7 @@ class BaseMenu:
                             return
                     except (ValueError, ValidationError) as e:
                         print(f"\n[ERROR] {e}")
-                    except (OSError, IOError) as e:
+                    except OSError as e:
                         print(f"\n[ERROR] File error: {e}")
                     except Exception as e:
                         import logging
@@ -189,7 +185,7 @@ class MainMenu(BaseMenu):
             print("Invalid length")
 
     def generate_with_template(self):
-        from pwd_generator.templates import list_templates, get_template
+        from pwd_generator.templates import get_template, list_templates
 
         templates = list_templates()
         print("\nAvailable Templates:")
@@ -256,9 +252,9 @@ class MainMenu(BaseMenu):
                 print("Saved to encrypted history")
         except ValueError as e:
             print(f"Invalid input: {e}")
-        except (OSError, IOError) as e:
+        except OSError as e:
             print(f"File operation error: {e}")
-        except (OSError, IOError) as e:
+        except OSError as e:
             print(f"File operation error: {e}")
         except Exception as e:
             import logging
@@ -423,35 +419,35 @@ class MainMenu(BaseMenu):
         is_breached, details = self.gen.check_password_breach(pwd)
 
         print(f"\n{'=' * 70}")
-        print(f"                    BREACH CHECK RESULT")
+        print("                    BREACH CHECK RESULT")
         print(f"{'=' * 70}")
 
         if details.get("error"):
-            print(f"\n[WARNING] Status: Error")
+            print("\n[WARNING] Status: Error")
             print(f"   {details['message']}")
         elif is_breached:
-            print(f"\n[WARNING] Status: BREACHED")
+            print("\n[WARNING] Status: BREACHED")
             print(f"   {details['message']}")
-            print(f"\n   Details:")
+            print("\n   Details:")
             print(f"   • Breach Count: {details['count']:,} occurrences")
             print(f"   • Hash Prefix Checked: {details['hash_prefix']}****")
             print(f"   • Checked At: {details['timestamp']}")
         else:
-            print(f"\n[OK] Status: SAFE")
+            print("\n[OK] Status: SAFE")
             print(f"   {details['message']}")
-            print(f"\n   Details:")
+            print("\n   Details:")
             print(f"   • Hash Prefix Checked: {details['hash_prefix']}****")
             print(f"   • Checked At: {details['timestamp']}")
 
         if details.get("recommendations"):
-            print(f"\n   Recommendations:")
+            print("\n   Recommendations:")
             for i, rec in enumerate(details["recommendations"], 1):
                 print(f"   {i}. {rec}")
 
-        print(f"\n   Security Note:")
-        print(f"   • This check uses k-anonymity (only first 5 chars of hash sent)")
-        print(f"   • Your full password never leaves your device")
-        print(f"   • Data source: Have I Been Pwned (haveibeenpwned.com)")
+        print("\n   Security Note:")
+        print("   • This check uses k-anonymity (only first 5 chars of hash sent)")
+        print("   • Your full password never leaves your device")
+        print("   • Data source: Have I Been Pwned (haveibeenpwned.com)")
 
         print(f"{'=' * 70}\n")
 
@@ -474,7 +470,7 @@ class MainMenu(BaseMenu):
             return
 
         print(f"\n{'=' * 70}")
-        print(f"                    PASSWORD COMPARISON")
+        print("                    PASSWORD COMPARISON")
         print(f"{'=' * 70}\n")
 
         results = []
@@ -506,7 +502,6 @@ class MainMenu(BaseMenu):
             generate_qr_code,
             generate_wifi_qr,
         )
-        import os
 
         print("\nGenerate QR Code")
         print("-" * 60)
@@ -645,9 +640,9 @@ class MainMenu(BaseMenu):
 
     def filter_and_sort_history(self):
         from pwd_generator.filters import (
+            filter_history_by_entropy,
             filter_history_by_service,
             filter_history_by_strength,
-            filter_history_by_entropy,
             sort_history,
         )
 
@@ -716,11 +711,11 @@ class MainMenu(BaseMenu):
                     print(f"\n... and {len(filtered) - 20} more entries")
 
     def export_history(self):
-        from pwd_generator.export import export_history_json, export_history_csv
+        from pwd_generator.export import export_history_csv, export_history_json
         from pwd_generator.filters import (
+            filter_history_by_entropy,
             filter_history_by_service,
             filter_history_by_strength,
-            filter_history_by_entropy,
             sort_history,
         )
 
@@ -882,45 +877,16 @@ class MainMenu(BaseMenu):
                 imported += 1
 
             print(f"[OK] Imported {imported} passwords from {filename}")
-        except (OSError, IOError, ValueError) as e:
+        except (OSError, ValueError) as e:
             print(f"[ERROR] Error importing: {e}")
 
     def security_audit(self):
-        from pwd_generator.audit import PasswordAuditor
+        from pwd_generator.audit import PasswordAuditor, format_audit_console_report
 
         print("\nRunning Security Audit...")
         auditor = PasswordAuditor(self.gen)
         report = auditor.generate_audit_report()
-
-        print(f"\n{'=' * 70}")
-        print(f"                    PASSWORD SECURITY AUDIT")
-        print(f"{'=' * 70}")
-        print(f"\nGenerated: {report['generated_at']}")
-
-        score = report["security_score"]
-        print(f"\nSecurity Score: {score['score']:.1f}/100")
-        print(f"  • Total Passwords: {score['details']['total_passwords']}")
-        print(f"  • Weak Passwords: {score['details']['weak_passwords']}")
-        print(f"  • Duplicate Passwords: {score['details']['duplicate_passwords']}")
-        print(f"  • Expired Passwords: {score['details']['expired_passwords']}")
-
-        if report["duplicates"]:
-            print(f"\n[WARNING]  Duplicate Passwords ({len(report['duplicates'])}):")
-            for dup in report["duplicates"][:10]:
-                length_info = f", length {dup['length']}" if 'length' in dup else ""
-                print(f"   • {dup['password']} (used {dup['count']} times{length_info})")
-
-        if report["weak_passwords"]:
-            print(f"\n[WARNING]  Weak Passwords ({len(report['weak_passwords'])}):")
-            for weak in report["weak_passwords"][:10]:
-                print(f"   • {weak['service']}: {weak['entropy']:.1f} bits")
-
-        if report["expired_passwords"]:
-            print(
-                f"\n[WARNING]  Expired Passwords ({len(report['expired_passwords'])}):"
-            )
-            for exp in report["expired_passwords"][:10]:
-                print(f"   • {exp['service']}: {exp['created_at'][:10]}")
+        print(format_audit_console_report(report), end="")
 
         if prompt_yes_no("\nExport report to file?", default=False):
             filename = get_input("Filename: ").strip()
@@ -935,7 +901,7 @@ class MainMenu(BaseMenu):
                     print(f"[OK] Report saved to {filename}")
                 except ValueError as e:
                     print(f"[ERROR] Invalid file path: {e}")
-                except (OSError, IOError) as e:
+                except OSError as e:
                     print(f"[ERROR] Failed to save report: {e}")
 
         print(f"\n{'=' * 70}\n")
@@ -995,8 +961,8 @@ class MainMenu(BaseMenu):
 
     def batch_generate(self):
         from pwd_generator.export import (
-            export_passwords_json,
             export_passwords_csv,
+            export_passwords_json,
         )
 
         try:
@@ -1083,7 +1049,7 @@ class MainMenu(BaseMenu):
                             for pwd in passwords:
                                 f.write(pwd + "\n")
                         print(f"[OK] Exported to {filename}")
-                    except (OSError, IOError) as e:
+                    except OSError as e:
                         print(f"[ERROR] Failed to export: {e}")
                 elif format_choice == "2":
                     if export_passwords_json(passwords, filename):
@@ -1126,7 +1092,7 @@ class MainMenu(BaseMenu):
             print("Invalid input")
 
     def configuration(self):
-        from pwd_generator.config import save_config, create_default_config
+        from pwd_generator.config import create_default_config
 
         print("\nConfiguration Management")
         print("-" * 60)
@@ -1157,7 +1123,7 @@ class MainMenu(BaseMenu):
                     print(f"[ERROR] Invalid config file path: {e}")
                     return
             if create_default_config(config_file):
-                print(f"[OK] Created default configuration file")
+                print("[OK] Created default configuration file")
             else:
                 print("[ERROR] Failed to create configuration file")
         elif config_choice == "3":
@@ -1176,7 +1142,7 @@ class MainMenu(BaseMenu):
                 print("Invalid file path")
 
     def profiles(self):
-        from pwd_generator.profiles import ProfileManager, PasswordProfile
+        from pwd_generator.profiles import PasswordProfile, ProfileManager
 
         manager = ProfileManager()
 
@@ -1266,14 +1232,20 @@ class MainMenu(BaseMenu):
         sys.exit(0)
 
 
-def main_interactive():
+def main_interactive(history_file: str = "password_history.enc") -> None:
+    """
+    Text UI menu. ``history_file`` selects the encrypted vault (same as CLI ``--history-file``).
+    """
     try:
+        hist_path = Path(history_file)
+
         print("=" * 60)
         print("           HORIZON SECURE PASSWORD GENERATOR            ")
         print("=" * 60)
         print()
+        sys.stdout.flush()
 
-        history_exists = Path("password_history.enc").exists()
+        history_exists = hist_path.exists()
 
         config = load_config()
         policy = config.get("policy", {})
@@ -1308,7 +1280,9 @@ def main_interactive():
 
                 try:
                     gen = SecurePasswordGenerator(
-                        master_password=master_password, policy=policy
+                        master_password=master_password,
+                        policy=policy,
+                        history_file=str(hist_path),
                     )
                     print("Master password created successfully!")
                     print()
@@ -1331,7 +1305,9 @@ def main_interactive():
                     break
                 try:
                     gen = SecurePasswordGenerator(
-                        master_password=master_password, policy=policy
+                        master_password=master_password,
+                        policy=policy,
+                        history_file=str(hist_path),
                     )
                     break
                 except ValidationError as e:
@@ -1356,23 +1332,25 @@ def main_interactive():
                     if choice == "1":
                         continue
                     elif choice == "2":
-                        history_file = Path("password_history.enc")
-                        if history_file.exists():
+                        if hist_path.exists():
                             try:
-                                backup_file = Path(
-                                    f"password_history.enc.backup.{int(time.time())}"
+                                backup_file = (
+                                    hist_path.parent
+                                    / f"{hist_path.name}.backup.{int(time.time())}"
                                 )
-                                shutil.copy(history_file, backup_file)
+                                shutil.copy(hist_path, backup_file)
                                 print(f"Backed up old history to {backup_file}")
-                                history_file.unlink()
+                                hist_path.unlink()
                                 print("Starting with fresh history")
-                            except (OSError, IOError) as e:
+                            except OSError as e:
                                 print(f"Error handling history file backup: {e}")
                                 print("Proceeding without backup...")
-                                history_file.unlink(missing_ok=True)
+                                hist_path.unlink(missing_ok=True)
                         try:
                             gen = SecurePasswordGenerator(
-                                master_password=master_password, policy=policy
+                                master_password=master_password,
+                                policy=policy,
+                                history_file=str(hist_path),
                             )
                             break
                         except (ValueError, EncryptionError) as e:
@@ -1385,7 +1363,9 @@ def main_interactive():
                         sys.exit(0)
 
         if not master_password and not gen:
-            gen = SecurePasswordGenerator(policy=policy)
+            gen = SecurePasswordGenerator(
+                policy=policy, history_file=str(hist_path)
+            )
 
         if gen and master_password:
             expired = gen.get_expired_passwords()
@@ -1402,7 +1382,7 @@ def main_interactive():
         sys.exit(0)
     except (ValueError, ValidationError) as e:
         print(f"\nValidation error: {e}")
-    except (OSError, IOError) as e:
+    except OSError as e:
         import logging
 
         logger = logging.getLogger(__name__)

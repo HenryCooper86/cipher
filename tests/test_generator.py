@@ -1,7 +1,4 @@
-import pytest
-import os
 from datetime import datetime, timedelta
-from pwd_generator import SecurePasswordGenerator, ValidationError
 
 
 def test_generate_random_string_default(gen):

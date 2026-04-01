@@ -999,7 +999,7 @@ WORDLIST = [
     "zodiac", "zombie", "zone", "zoning", "zookeeper", "zoologist", "zoology", "zoom",
 ]
 KEYBOARD_ROWS = [
-    "qwertyuiop", "asdfghjkl", "zxcvbnm", 
+    "qwertyuiop", "asdfghjkl", "zxcvbnm",
     "1234567890", "`-=[]\\;',./",
     "~!@#$%^&*()_+{}|:\"<>?"
 ]

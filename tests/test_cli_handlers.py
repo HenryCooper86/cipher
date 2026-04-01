@@ -1,32 +1,28 @@
 """Tests for CLI handler functions."""
-import pytest
-import sys
 import json
-from io import StringIO
-from pathlib import Path
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import MagicMock, patch
 
+import pytest
+from pwd_generator import SecurePasswordGenerator
 from pwd_generator.cli import (
-    handle_generate,
+    _escape_wifi_value,
     handle_analyze,
+    handle_audit,
     handle_batch,
+    handle_breach_check,
+    handle_compare,
+    handle_config,
+    handle_generate,
+    handle_history_delete,
+    handle_history_export,
     handle_history_list,
     handle_history_search,
     handle_history_show,
-    handle_history_delete,
-    handle_history_export,
-    handle_breach_check,
-    handle_template,
-    handle_config,
-    handle_profile,
-    handle_audit,
     handle_import,
     handle_pattern,
-    handle_qr,
-    handle_compare,
-    _escape_wifi_value,
+    handle_profile,
+    handle_template,
 )
-from pwd_generator import SecurePasswordGenerator, ValidationError
 
 
 @pytest.fixture
@@ -96,7 +92,7 @@ class TestHandleGenerate:
         args.save = False
         args.quiet = False
         args.json = False
-        
+
         mock_gen.generate_random_string.return_value = "TestPassword123!"
         mock_gen.get_password_stats.return_value = {
             "length": 16, "entropy": 95.5, "strength": "Strong",
@@ -105,10 +101,10 @@ class TestHandleGenerate:
             "unique_chars": 16, "is_valid": True,
             "validation_message": "Valid"
         }
-        
+
         with patch('pwd_generator.cli.handlers.copy_to_clipboard', return_value=True):
             handle_generate(args, mock_gen)
-        
+
         captured = capsys.readouterr()
         assert "TestPassword123!" in captured.out
         mock_gen.generate_random_string.assert_called_once_with(16)
@@ -123,7 +119,7 @@ class TestHandleGenerate:
         args.save = False
         args.quiet = False
         args.json = False
-        
+
         mock_gen.generate_passphrase.return_value = "word1-word2-word3-word4-word5"
         mock_gen.get_password_stats.return_value = {
             "length": 30, "entropy": 80.0, "strength": "Strong",
@@ -132,9 +128,9 @@ class TestHandleGenerate:
             "unique_chars": 20, "is_valid": True,
             "validation_message": "Valid"
         }
-        
+
         handle_generate(args, mock_gen)
-        
+
         mock_gen.generate_passphrase.assert_called_once_with(5, "-")
 
     def test_generate_pin(self, mock_gen, capsys):
@@ -146,7 +142,7 @@ class TestHandleGenerate:
         args.save = False
         args.quiet = False
         args.json = False
-        
+
         mock_gen.generate_pin.return_value = "123456"
         mock_gen.get_password_stats.return_value = {
             "length": 6, "entropy": 19.9, "strength": "Weak",
@@ -155,9 +151,9 @@ class TestHandleGenerate:
             "unique_chars": 6, "is_valid": True,
             "validation_message": "Valid"
         }
-        
+
         handle_generate(args, mock_gen)
-        
+
         mock_gen.generate_pin.assert_called_once_with(6)
 
     def test_generate_quiet_mode(self, mock_gen, capsys):
@@ -169,11 +165,11 @@ class TestHandleGenerate:
         args.save = False
         args.quiet = True
         args.json = False
-        
+
         mock_gen.generate_random_string.return_value = "TestPass123!"
-        
+
         handle_generate(args, mock_gen)
-        
+
         captured = capsys.readouterr()
         assert captured.out.strip() == "TestPass123!"
 
@@ -186,14 +182,14 @@ class TestHandleGenerate:
         args.save = False
         args.quiet = False
         args.json = True
-        
+
         mock_gen.generate_random_string.return_value = "TestPass123!"
         mock_gen.get_password_stats.return_value = {
             "length": 10, "entropy": 65.5, "strength": "Strong"
         }
-        
+
         handle_generate(args, mock_gen)
-        
+
         captured = capsys.readouterr()
         output = json.loads(captured.out)
         assert output["password"] == "TestPass123!"
@@ -209,7 +205,7 @@ class TestHandleGenerate:
         args.notes = "test notes"
         args.quiet = False
         args.json = False
-        
+
         mock_gen.generate_random_string.return_value = "TestPass123!"
         mock_gen.get_password_stats.return_value = {
             "length": 10, "entropy": 65.5, "strength": "Strong",
@@ -219,9 +215,9 @@ class TestHandleGenerate:
             "validation_message": "Valid"
         }
         mock_gen.encryption_manager.cipher = MagicMock()
-        
+
         handle_generate(args, mock_gen)
-        
+
         mock_gen.add_to_history.assert_called_once_with("TestPass123!", "test-service", "test notes")
 
     def test_generate_unknown_type(self, mock_gen):
@@ -230,7 +226,7 @@ class TestHandleGenerate:
         args.profile = None
         args.quiet = False
         args.json = False
-        
+
         with pytest.raises(SystemExit) as exc_info:
             handle_generate(args, mock_gen)
         assert exc_info.value.code == 1
@@ -244,7 +240,7 @@ class TestHandleAnalyze:
         args.password = "TestPass123!"
         args.quiet = False
         args.json = False
-        
+
         mock_gen.get_password_stats.return_value = {
             "length": 12, "entropy": 78.5, "strength": "Strong",
             "has_uppercase": True, "has_lowercase": True,
@@ -252,9 +248,9 @@ class TestHandleAnalyze:
             "unique_chars": 12, "is_valid": True,
             "validation_message": "Valid"
         }
-        
+
         handle_analyze(args, mock_gen)
-        
+
         captured = capsys.readouterr()
         assert "TestPass123!" in captured.out
 
@@ -263,9 +259,9 @@ class TestHandleAnalyze:
         args.password = "testpass"
         args.quiet = True
         args.json = False
-        
+
         handle_analyze(args, mock_gen)
-        
+
         captured = capsys.readouterr()
         assert captured.out.strip() == "testpass"
 
@@ -274,13 +270,13 @@ class TestHandleAnalyze:
         args.password = "testpass"
         args.quiet = False
         args.json = True
-        
+
         mock_gen.get_password_stats.return_value = {
             "length": 8, "entropy": 50.0, "strength": "Fair"
         }
-        
+
         handle_analyze(args, mock_gen)
-        
+
         captured = capsys.readouterr()
         output = json.loads(captured.out)
         assert "length" in output
@@ -296,11 +292,11 @@ class TestHandleBatch:
         args.length = 12
         args.output = None
         args.format = "txt"
-        
+
         mock_gen.batch_generate.return_value = ["pass1", "pass2", "pass3"]
-        
+
         handle_batch(args, mock_gen)
-        
+
         captured = capsys.readouterr()
         assert "pass1" in captured.out
         assert "pass2" in captured.out
@@ -314,9 +310,9 @@ class TestHandleBatch:
         args.length = 12
         args.output = str(output_file)
         args.format = "txt"
-        
+
         mock_gen.batch_generate.return_value = ["pass1", "pass2"]
-        
+
         # Change to tmp_path to ensure file is created in test directory
         original_cwd = os.getcwd()
         try:
@@ -324,7 +320,7 @@ class TestHandleBatch:
             handle_batch(args, mock_gen)
         finally:
             os.chdir(original_cwd)
-        
+
         assert output_file.exists()
         content = output_file.read_text()
         assert "pass1" in content
@@ -336,18 +332,18 @@ class TestHandleHistory:
     def test_history_list_empty(self, mock_gen, capsys):
         args = MagicMock()
         args.limit = 20
-        
+
         handle_history_list(args, mock_gen)
-        
+
         captured = capsys.readouterr()
         assert "No password history" in captured.out
 
     def test_history_list_with_entries(self, mock_gen_with_history, capsys):
         args = MagicMock()
         args.limit = 20
-        
+
         handle_history_list(args, mock_gen_with_history)
-        
+
         captured = capsys.readouterr()
         assert "test-service" in captured.out
 
@@ -355,9 +351,9 @@ class TestHandleHistory:
         args = MagicMock()
         args.query = "nonexistent"
         mock_gen.history = []  # Empty history
-        
+
         handle_history_search(args, mock_gen)
-        
+
         captured = capsys.readouterr()
         # The function returns early if no history, check for appropriate message
         assert "No results" in captured.out or "No password history" in captured.out or captured.out == ""
@@ -365,18 +361,18 @@ class TestHandleHistory:
     def test_history_search_with_results(self, mock_gen_with_history, capsys):
         args = MagicMock()
         args.query = "test"
-        
+
         handle_history_search(args, mock_gen_with_history)
-        
+
         captured = capsys.readouterr()
         assert "test-service" in captured.out
 
     def test_history_show_valid(self, mock_gen_with_history, capsys):
         args = MagicMock()
         args.index = 1
-        
+
         handle_history_show(args, mock_gen_with_history)
-        
+
         captured = capsys.readouterr()
         assert "test123" in captured.out
         assert "test-service" in captured.out
@@ -384,7 +380,7 @@ class TestHandleHistory:
     def test_history_show_invalid_index(self, mock_gen):
         args = MagicMock()
         args.index = 99
-        
+
         with pytest.raises(SystemExit) as exc_info:
             handle_history_show(args, mock_gen)
         assert exc_info.value.code == 1
@@ -393,19 +389,19 @@ class TestHandleHistory:
         args = MagicMock()
         args.index = 1
         mock_gen_with_history.delete_from_history.return_value = True
-        
+
         with patch('pwd_generator.cli.handlers.prompt_yes_no', return_value=True):
             handle_history_delete(args, mock_gen_with_history)
-        
+
         mock_gen_with_history.delete_from_history.assert_called_once_with(0)
 
     def test_history_delete_cancelled(self, mock_gen_with_history, capsys):
         args = MagicMock()
         args.index = 1
-        
+
         with patch('pwd_generator.cli.handlers.prompt_yes_no', return_value=False):
             handle_history_delete(args, mock_gen_with_history)
-        
+
         mock_gen_with_history.delete_from_history.assert_not_called()
 
     def test_history_export_no_history(self, mock_gen_with_history, capsys):
@@ -419,9 +415,9 @@ class TestHandleHistory:
         args.sort = "date"
         args.reverse = False
         mock_gen_with_history.history = []
-        
+
         handle_history_export(args, mock_gen_with_history)
-        
+
         captured = capsys.readouterr()
         assert "No password history" in captured.out
 
@@ -432,7 +428,7 @@ class TestHandleBreach:
     def test_breach_check_safe(self, mock_gen, capsys):
         args = MagicMock()
         args.password = "safe_password"
-        
+
         mock_gen.check_password_breach.return_value = (
             False,
             {
@@ -443,16 +439,16 @@ class TestHandleBreach:
                 "error": None,
             },
         )
-        
+
         handle_breach_check(args, mock_gen)
-        
+
         captured = capsys.readouterr()
         assert "SAFE" in captured.out
 
     def test_breach_check_breached(self, mock_gen, capsys):
         args = MagicMock()
         args.password = "password123"
-        
+
         mock_gen.check_password_breach.return_value = (
             True,
             {
@@ -464,9 +460,9 @@ class TestHandleBreach:
                 "error": None,
             },
         )
-        
+
         handle_breach_check(args, mock_gen)
-        
+
         captured = capsys.readouterr()
         assert "BREACHED" in captured.out
         assert "1,000,000" in captured.out
@@ -474,7 +470,7 @@ class TestHandleBreach:
     def test_breach_check_error(self, mock_gen, capsys):
         args = MagicMock()
         args.password = "test"
-        
+
         mock_gen.check_password_breach.return_value = (
             False,
             {
@@ -485,9 +481,9 @@ class TestHandleBreach:
                 "error": "Connection refused",
             },
         )
-        
+
         handle_breach_check(args, mock_gen)
-        
+
         captured = capsys.readouterr()
         assert "Error" in captured.out or "Unable" in captured.out
 
@@ -500,10 +496,10 @@ class TestHandleTemplate:
         args.list = True
         args.template = None
         args.length = 16
-        
+
         with patch('pwd_generator.templates.list_templates', return_value=['alphanumeric', 'readable']):
             handle_template(args, mock_gen)
-        
+
         captured = capsys.readouterr()
         assert "alphanumeric" in captured.out
         assert "readable" in captured.out
@@ -513,11 +509,11 @@ class TestHandleTemplate:
         args.list = False
         args.template = "alphanumeric"
         args.length = 16
-        
+
         mock_template = MagicMock()
         mock_template.min_length = 8
         mock_template.generate.return_value = "TestPass123"
-        
+
         mock_gen.get_password_stats.return_value = {
             "length": 10, "entropy": 65.5, "strength": "Strong",
             "has_uppercase": True, "has_lowercase": True,
@@ -525,11 +521,11 @@ class TestHandleTemplate:
             "unique_chars": 10, "is_valid": True,
             "validation_message": "Valid"
         }
-        
+
         with patch('pwd_generator.templates.get_template', return_value=mock_template):
             with patch('pwd_generator.cli.handlers.copy_to_clipboard', return_value=True):
                 handle_template(args, mock_gen)
-        
+
         mock_template.generate.assert_called_once_with(16)
 
 
@@ -541,10 +537,10 @@ class TestHandleConfig:
         args.show = True
         args.create_default = False
         args.file = None
-        
+
         with patch('pwd_generator.config.load_config', return_value={'policy': {'min_length': 12}}):
             handle_config(args)
-        
+
         captured = capsys.readouterr()
         assert "min_length" in captured.out
 
@@ -553,10 +549,10 @@ class TestHandleConfig:
         args.show = False
         args.create_default = True
         args.file = None
-        
+
         with patch('pwd_generator.config.create_default_config', return_value=True):
             handle_config(args)
-        
+
         captured = capsys.readouterr()
         assert "Created default" in captured.out or "default" in captured.out.lower()
 
@@ -567,17 +563,17 @@ class TestHandleProfile:
     def test_profile_list(self, mock_gen, capsys):
         args = MagicMock()
         args.profile_command = "list"
-        
+
         mock_manager = MagicMock()
         mock_manager.list_profiles.return_value = ['banking', 'social']
         mock_profile = MagicMock()
         mock_profile.policy = {'min_length': 20}
         mock_profile.template = 'readable'
         mock_manager.get_profile.return_value = mock_profile
-        
+
         with patch('pwd_generator.profiles.ProfileManager', return_value=mock_manager):
             handle_profile(args, mock_gen)
-        
+
         captured = capsys.readouterr()
         assert "banking" in captured.out or "social" in captured.out
 
@@ -589,7 +585,7 @@ class TestHandleAudit:
         args = MagicMock()
         args.format = "text"
         args.output = None
-        
+
         mock_auditor = MagicMock()
         mock_auditor.generate_audit_report.return_value = {
             "generated_at": "2024-01-01T00:00:00",
@@ -606,10 +602,10 @@ class TestHandleAudit:
             "weak_passwords": [],
             "expired_passwords": [],
         }
-        
+
         with patch('pwd_generator.audit.PasswordAuditor', return_value=mock_auditor):
             handle_audit(args, mock_gen)
-        
+
         captured = capsys.readouterr()
         assert "85.5" in captured.out or "AUDIT" in captured.out
 
@@ -619,13 +615,13 @@ class TestHandleAudit:
         args = MagicMock()
         args.format = "json"
         args.output = str(output_file)
-        
+
         mock_auditor = MagicMock()
         mock_auditor.generate_audit_report.return_value = {
             "generated_at": "2024-01-01T00:00:00",
             "security_score": {"score": 85.5},
         }
-        
+
         original_cwd = os.getcwd()
         try:
             os.chdir(tmp_path)
@@ -633,7 +629,7 @@ class TestHandleAudit:
                 handle_audit(args, mock_gen)
         finally:
             os.chdir(original_cwd)
-        
+
         assert output_file.exists()
 
 
@@ -644,9 +640,9 @@ class TestHandlePattern:
         args = MagicMock()
         args.examples = True
         args.pattern = None
-        
+
         handle_pattern(args, mock_gen)
-        
+
         captured = capsys.readouterr()
         assert "[noun]" in captured.out
         assert "[verb]" in captured.out
@@ -655,7 +651,7 @@ class TestHandlePattern:
         args = MagicMock()
         args.examples = False
         args.pattern = "[noun]-[2digits]"
-        
+
         mock_gen.get_password_stats.return_value = {
             "length": 10, "entropy": 50.0, "strength": "Fair",
             "has_uppercase": True, "has_lowercase": True,
@@ -663,7 +659,7 @@ class TestHandlePattern:
             "unique_chars": 8, "is_valid": True,
             "validation_message": "Valid"
         }
-        
+
         with patch('pwd_generator.patterns.validate_pattern', return_value=(True, "Valid")):
             with patch('pwd_generator.patterns.PatternGenerator') as mock_pattern_gen:
                 mock_instance = MagicMock()
@@ -672,8 +668,8 @@ class TestHandlePattern:
                 with patch('pwd_generator.cli.handlers.copy_to_clipboard', return_value=True):
                     with patch('pwd_generator.cli.handlers.print_password_stats'):
                         handle_pattern(args, mock_gen)
-        
-        captured = capsys.readouterr()
+
+        capsys.readouterr()
 
 
 class TestHandleCompare:
@@ -682,15 +678,15 @@ class TestHandleCompare:
     def test_compare_passwords(self, mock_gen, capsys):
         args = MagicMock()
         args.passwords = ["password1", "password2", "password3"]
-        
+
         mock_gen.get_password_stats.side_effect = [
             {"length": 10, "entropy": 50.0, "strength": "Fair", "unique_chars": 8},
             {"length": 12, "entropy": 75.0, "strength": "Strong", "unique_chars": 10},
             {"length": 8, "entropy": 30.0, "strength": "Weak", "unique_chars": 6},
         ]
-        
+
         handle_compare(args, mock_gen)
-        
+
         captured = capsys.readouterr()
         assert "password1" in captured.out or "password" in captured.out
         assert "Length" in captured.out or "Entropy" in captured.out
@@ -700,18 +696,17 @@ class TestHandleImport:
     """Tests for handle_import function."""
 
     def test_import_json(self, mock_gen, tmp_path):
-        import os
         import_file = tmp_path / "import.json"
         import_file.write_text(json.dumps([{
             "password": "imported123",
             "metadata": {"service": "imported-service", "notes": "imported notes"}
         }]))
-        
+
         args = MagicMock()
         args.file = str(import_file)
         args.format = "json"
         mock_gen.encryption_manager.cipher = MagicMock()
-        
+
         try:
             handle_import(args, mock_gen)
             mock_gen.add_to_history.assert_called_once()
@@ -724,7 +719,7 @@ class TestHandleImport:
         args.file = "/tmp/test.json"
         args.format = "json"
         mock_gen.encryption_manager.cipher = None
-        
+
         with pytest.raises(SystemExit) as exc_info:
             handle_import(args, mock_gen)
         assert exc_info.value.code == 1

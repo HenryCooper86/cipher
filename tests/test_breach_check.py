@@ -1,8 +1,8 @@
 import unittest
-from unittest.mock import patch, MagicMock
-from pwd_generator.breach_check import check_password_breach
 import urllib.error
-import hashlib
+from unittest.mock import MagicMock, patch
+
+from pwd_generator.breach_check import check_password_breach
 
 
 class TestBreachCheck(unittest.TestCase):

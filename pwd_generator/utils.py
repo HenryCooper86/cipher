@@ -1,7 +1,7 @@
-import sys
-import subprocess
-import logging
 import getpass
+import logging
+import subprocess
+import sys
 from typing import Optional
 
 from pwd_generator.exceptions import ClipboardError
@@ -42,19 +42,19 @@ def prompt_yes_no(prompt: str, default: Optional[bool] = None) -> bool:
 def copy_to_clipboard(text: str, raise_on_error: bool = False) -> bool:
     """
     Copy text to system clipboard.
-    
+
     Args:
         text: The text to copy to clipboard
         raise_on_error: If True, raises ClipboardError on failure instead of returning False
-        
+
     Returns:
         bool: True if successful, False otherwise
-        
+
     Raises:
         ClipboardError: If raise_on_error is True and clipboard operation fails
     """
     last_error = None
-    
+
     try:
         import pyperclip
 
@@ -125,7 +125,7 @@ def copy_to_clipboard(text: str, raise_on_error: bool = False) -> bool:
             f"Failed to copy to clipboard: {last_error or 'No clipboard tool available'}",
             details={"platform": sys.platform, "error": str(last_error) if last_error else None}
         )
-    
+
     return False
 
 
@@ -133,14 +133,14 @@ def print_password_stats(gen, password: str) -> None:
     stats = gen.get_password_stats(password)
 
     print(f"\n{'=' * 60}")
-    print(f"Password Analysis")
+    print("Password Analysis")
     print(f"{'=' * 60}")
     print(f"Password:       {password}")
     print(f"Length:         {stats['length']} characters")
     print(f"Entropy:        {stats['entropy']:.2f} bits")
     print(f"Strength:       {stats['strength']}")
     print(f"Unique chars:   {stats['unique_chars']}")
-    print(f"\nCharacter Types:")
+    print("\nCharacter Types:")
     print(f"  Uppercase:    {'YES' if stats['has_uppercase'] else 'NO'}")
     print(f"  Lowercase:    {'YES' if stats['has_lowercase'] else 'NO'}")
     print(f"  Digits:       {'YES' if stats['has_digits'] else 'NO'}")

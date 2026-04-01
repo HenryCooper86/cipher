@@ -1,11 +1,11 @@
-import pytest
-import json
 import csv
+import json
+
 from pwd_generator.export import (
-    export_passwords_json,
-    export_passwords_csv,
-    export_history_json,
     export_history_csv,
+    export_history_json,
+    export_passwords_csv,
+    export_passwords_json,
 )
 
 
@@ -15,7 +15,7 @@ def test_export_passwords_json(temp_dir):
 
     assert export_passwords_json(passwords, str(filename))
 
-    with open(filename, "r") as f:
+    with open(filename) as f:
         data = json.load(f)
         assert data["count"] == 2
         assert len(data["passwords"]) == 2
@@ -28,7 +28,7 @@ def test_export_passwords_csv(temp_dir):
 
     assert export_passwords_csv(passwords, str(filename))
 
-    with open(filename, "r") as f:
+    with open(filename) as f:
         reader = csv.DictReader(f)
         rows = list(reader)
         assert len(rows) == 2
@@ -45,14 +45,14 @@ def test_export_history_json(temp_dir):
     # Test with password inclusion
     assert export_history_json(history, str(filename), include_passwords=True)
 
-    with open(filename, "r") as f:
+    with open(filename) as f:
         data = json.load(f)
         assert len(data["entries"]) == 2
         assert data["entries"][0]["password"] == "p1"
 
     # Test redacted
     assert export_history_json(history, str(filename), include_passwords=False)
-    with open(filename, "r") as f:
+    with open(filename) as f:
         data = json.load(f)
         assert data["entries"][0]["password"] == "***REDACTED***"
 
@@ -63,7 +63,7 @@ def test_export_history_csv(temp_dir):
 
     assert export_history_csv(history, str(filename), include_passwords=True)
 
-    with open(filename, "r") as f:
+    with open(filename) as f:
         reader = csv.DictReader(f)
         rows = list(reader)
         assert len(rows) == 1

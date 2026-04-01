@@ -1,7 +1,8 @@
-import pytest
 import sys
 from unittest.mock import MagicMock, patch
-from pwd_generator.cli import create_parser, main_cli, handle_generate
+
+import pytest
+from pwd_generator.cli import create_parser, handle_generate, main_cli
 
 
 def test_parser_generate_defaults():
@@ -63,6 +64,22 @@ def test_main_cli_help(monkeypatch, capsys):
     assert cm.value.code == 0
     captured = capsys.readouterr()
     assert "Horizon Secure Password Generator" in captured.out
+    assert "interactive" in captured.err
+
+
+def test_parser_interactive_subcommand():
+    from pwd_generator.cli.parser import create_parser
+
+    p = create_parser()
+    assert p.parse_args(["interactive"]).command == "interactive"
+    assert p.parse_args(["menu"]).command == "menu"
+
+
+def test_main_cli_interactive_routes_to_main_interactive(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["prog", "--history-file", "custom.enc", "menu"])
+    with patch("pwd_generator.interactive.main_interactive") as mock_main:
+        main_cli()
+        mock_main.assert_called_once_with(history_file="custom.enc")
 
 
 @patch("pwd_generator.cli.get_master_password")

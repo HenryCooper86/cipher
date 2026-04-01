@@ -1,7 +1,7 @@
 import logging
 import logging.handlers
-import sys
 import os
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -48,7 +48,7 @@ def setup_logging(
         )
         file_handler.setFormatter(file_formatter)
         handlers.append(file_handler)
-        
+
         # Set secure file permissions (owner read/write only)
         try:
             os.chmod(log_file, 0o600)
@@ -70,13 +70,22 @@ def setup_logging(
     logger.info("Logging initialized")
 
 
+def quiet_console_for_interactive_menu() -> None:
+    """Reduce stderr/stdout log noise while the full-screen text menu runs."""
+    for handler in logging.root.handlers:
+        stream = getattr(handler, "stream", None)
+        if stream in (sys.stderr, sys.stdout):
+            handler.setLevel(logging.WARNING)
+    logging.getLogger("pwd_generator.config").setLevel(logging.WARNING)
+
+
 class SecureRotatingFileHandler(logging.handlers.RotatingFileHandler):
     """Rotating file handler that ensures secure file permissions."""
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._permissions_set = False
-        
+
     def emit(self, record):
         super().emit(record)
         # Set secure permissions after first write
@@ -86,7 +95,7 @@ class SecureRotatingFileHandler(logging.handlers.RotatingFileHandler):
                 self._permissions_set = True
             except OSError:
                 pass
-    
+
     def doRollover(self):
         super().doRollover()
         # Ensure new log file also has secure permissions

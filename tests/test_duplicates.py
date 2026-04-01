@@ -1,8 +1,8 @@
 import pytest
 from pwd_generator.duplicates import (
+    SIMILAR_PASSWORD_AUDIT_MAX_ENTRIES,
     find_duplicate_passwords,
     find_similar_passwords,
-    get_password_frequency,
 )
 
 
@@ -53,13 +53,11 @@ def test_find_similar_passwords_no_similar():
     assert len(similar) == 0
 
 
-def test_get_password_frequency(history):
-    frequency = get_password_frequency(history)
-    assert frequency["Password123!"] == 3
-    assert frequency["DifferentP@ss1"] == 1
-    assert frequency["AnotherPass456"] == 1
+def test_find_similar_passwords_skips_large_history():
+    huge = [{"password": f"p{i}"} for i in range(SIMILAR_PASSWORD_AUDIT_MAX_ENTRIES + 1)]
+    assert find_similar_passwords(huge) == []
 
 
 def test_empty_history():
     assert len(find_duplicate_passwords([])) == 0
-    assert len(get_password_frequency([])) == 0
+    assert len(find_similar_passwords([])) == 0

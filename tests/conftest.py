@@ -1,8 +1,8 @@
-import pytest
-import os
 import shutil
 import tempfile
 from pathlib import Path
+
+import pytest
 from pwd_generator import SecurePasswordGenerator
 
 

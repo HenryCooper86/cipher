@@ -1,9 +1,8 @@
 import csv
 import json
 import logging
-from typing import List, Dict, Any, Optional
-from pathlib import Path
 from datetime import datetime
+from typing import Any
 
 from pwd_generator.exceptions import FileOperationError, ValidationError
 
@@ -12,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def import_from_csv(
     filename: str, format_type: str = "generic"
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Import passwords from CSV file.
 
@@ -25,7 +24,7 @@ def import_from_csv(
     entries = []
 
     try:
-        with open(filename, "r", encoding="utf-8") as f:
+        with open(filename, encoding="utf-8") as f:
             reader = csv.DictReader(f)
 
             for row in reader:
@@ -63,13 +62,13 @@ def import_from_csv(
 
         logger.info(f"Imported {len(entries)} entries from {filename}")
         return entries
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         logger.error(f"CSV file not found: {filename}")
         raise FileOperationError(f"Import file not found: {filename}", details={"path": filename})
-    except PermissionError as e:
+    except PermissionError:
         logger.error(f"Permission denied reading CSV file: {filename}")
         raise FileOperationError(f"Permission denied reading file: {filename}", details={"path": filename})
-    except (IOError, OSError) as e:
+    except OSError as e:
         logger.error(f"File I/O error during CSV import: {e}")
         raise FileOperationError(f"Failed to read CSV file: {e}", details={"path": filename, "error": str(e)})
     except csv.Error as e:
@@ -77,10 +76,10 @@ def import_from_csv(
         raise ValidationError(f"Invalid CSV format: {e}", details={"path": filename, "error": str(e)})
 
 
-def import_from_json(filename: str) -> List[Dict[str, Any]]:
+def import_from_json(filename: str) -> list[dict[str, Any]]:
     """Import passwords from JSON file."""
     try:
-        with open(filename, "r", encoding="utf-8") as f:
+        with open(filename, encoding="utf-8") as f:
             data = json.load(f)
 
         entries = []
@@ -106,13 +105,13 @@ def import_from_json(filename: str) -> List[Dict[str, Any]]:
 
         logger.info(f"Imported {len(entries)} entries from {filename}")
         return entries
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         logger.error(f"JSON file not found: {filename}")
         raise FileOperationError(f"Import file not found: {filename}", details={"path": filename})
-    except PermissionError as e:
+    except PermissionError:
         logger.error(f"Permission denied reading JSON file: {filename}")
         raise FileOperationError(f"Permission denied reading file: {filename}", details={"path": filename})
-    except (IOError, OSError) as e:
+    except OSError as e:
         logger.error(f"File I/O error during JSON import: {e}")
         raise FileOperationError(f"Failed to read JSON file: {e}", details={"path": filename, "error": str(e)})
     except json.JSONDecodeError as e:
@@ -120,7 +119,7 @@ def import_from_json(filename: str) -> List[Dict[str, Any]]:
         raise ValidationError(f"Invalid JSON format: {e}", details={"path": filename, "error": str(e)})
 
 
-def export_to_1password_csv(history: List[Dict], filename: str) -> bool:
+def export_to_1password_csv(history: list[dict], filename: str) -> bool:
     """Export to 1Password CSV format."""
     try:
         with open(filename, "w", newline="", encoding="utf-8") as f:
@@ -139,7 +138,7 @@ def export_to_1password_csv(history: List[Dict], filename: str) -> bool:
 
         logger.info(f"Exported to 1Password format: {filename}")
         return True
-    except (IOError, OSError) as e:
+    except OSError as e:
         logger.error(f"File I/O error during 1Password export: {e}")
         return False
     except csv.Error as e:
@@ -147,7 +146,7 @@ def export_to_1password_csv(history: List[Dict], filename: str) -> bool:
         return False
 
 
-def export_to_lastpass_csv(history: List[Dict], filename: str) -> bool:
+def export_to_lastpass_csv(history: list[dict], filename: str) -> bool:
     """Export to LastPass CSV format."""
     try:
         with open(filename, "w", newline="", encoding="utf-8") as f:
@@ -172,7 +171,7 @@ def export_to_lastpass_csv(history: List[Dict], filename: str) -> bool:
 
         logger.info(f"Exported to LastPass format: {filename}")
         return True
-    except (IOError, OSError) as e:
+    except OSError as e:
         logger.error(f"File I/O error during LastPass export: {e}")
         return False
     except csv.Error as e:
@@ -180,7 +179,7 @@ def export_to_lastpass_csv(history: List[Dict], filename: str) -> bool:
         return False
 
 
-def export_to_bitwarden_csv(history: List[Dict], filename: str) -> bool:
+def export_to_bitwarden_csv(history: list[dict], filename: str) -> bool:
     """Export to Bitwarden CSV format."""
     try:
         with open(filename, "w", newline="", encoding="utf-8") as f:
@@ -211,7 +210,7 @@ def export_to_bitwarden_csv(history: List[Dict], filename: str) -> bool:
 
         logger.info(f"Exported to Bitwarden format: {filename}")
         return True
-    except (IOError, OSError) as e:
+    except OSError as e:
         logger.error(f"File I/O error during Bitwarden export: {e}")
         return False
     except csv.Error as e:

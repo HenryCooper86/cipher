@@ -1,30 +1,31 @@
-import unittest
-import sys
+import math
 import os
 import string
-import math
-from unittest.mock import patch, MagicMock
+import sys
+import unittest
 from io import StringIO
+from unittest.mock import patch
 
 # Add parent directory to path to import simple_cipher as simple_pwd
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import simple_cipher as simple_pwd
 
+
 class TestSimplePwd(unittest.TestCase):
     def test_calculate_entropy(self):
         # Empty password
         self.assertEqual(simple_pwd.calculate_entropy(""), 0)
-        
+
         # Lowercase only (26 chars) -> log2(26) ≈ 4.7 bits per char * 3 chars ≈ 14.1
         entropy = simple_pwd.calculate_entropy("abc")
         self.assertAlmostEqual(entropy, 14.101, places=3)
-        
+
         # Mixed (lower + upper + digits + special) -> log2(79) ≈ 6.30 bits per char
         # entropy of 1 char from full set
         # "A" has upper only -> pool 26 -> 4.7 bits
         self.assertAlmostEqual(simple_pwd.calculate_entropy("A"), 4.7004, places=3)
-        
+
         # "Aa1!" has all types -> pool 26+26+10+17 = 79
         entropy_complex = simple_pwd.calculate_entropy("Aa1!")
         expected = 4 * math.log2(79)  # log2(79) * 4
@@ -33,7 +34,7 @@ class TestSimplePwd(unittest.TestCase):
     def test_generate_password_length(self):
         pwd = simple_pwd.generate_password(length=20)
         self.assertEqual(len(pwd), 20)
-        
+
         pwd = simple_pwd.generate_password(length=8)
         self.assertEqual(len(pwd), 8)
 
@@ -59,8 +60,8 @@ class TestSimplePwd(unittest.TestCase):
         # e.g. "Acid-Base-Code-Deck42!"
         parts = phrase.split('-')
         # The last part will contain the number and special char attached to the last word
-        self.assertTrue(len(parts) >= 4) 
-        
+        self.assertTrue(len(parts) >= 4)
+
         # Check simple length constraints
         phrase5 = simple_pwd.generate_passphrase(words=5)
         self.assertTrue(len(phrase5.split('-')) >= 5)
@@ -69,7 +70,7 @@ class TestSimplePwd(unittest.TestCase):
         pin = simple_pwd.generate_pin(length=6)
         self.assertEqual(len(pin), 6)
         self.assertTrue(pin.isdigit())
-        
+
         pin4 = simple_pwd.generate_pin(length=4)
         self.assertEqual(len(pin4), 4)
         self.assertTrue(pin4.isdigit())

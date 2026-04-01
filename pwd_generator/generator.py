@@ -1,20 +1,19 @@
-import secrets
-import string
 import hashlib
 import logging
-from typing import List, Set, Optional, Tuple, Dict, Any, Union
+import secrets
+import string
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Optional, Union
 
-from pwd_generator.exceptions import (
-    ValidationError, 
-    HistoryError, 
-    EncryptionError,
-    PasswordGeneratorError
-)
-from pwd_generator.constants import DEFAULT_POLICY, WORDLIST, SPECIAL_CHARS
-from pwd_generator.validation import PasswordValidator
+from pwd_generator.constants import DEFAULT_POLICY, SPECIAL_CHARS, WORDLIST
 from pwd_generator.encryption import EncryptionManager
+from pwd_generator.exceptions import (
+    EncryptionError,
+    HistoryError,
+    ValidationError,
+)
+from pwd_generator.validation import PasswordValidator
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,7 @@ class SecurePasswordGenerator:
         username: str = "",
         history_file: str = "password_history.enc",
         master_password: Optional[Union[str, bytearray, bytes]] = None,
-        policy: Optional[Dict[str, Any]] = None,
+        policy: Optional[dict[str, Any]] = None,
         profile: Optional[str] = None,
     ):
         self.username = username.lower()
@@ -52,8 +51,8 @@ class SecurePasswordGenerator:
             self.profile_template = None
 
         self.encryption_manager = EncryptionManager(str(self.history_file))
-        self.history: List[Dict] = []
-        self.session_generated: Set[str] = set()
+        self.history: list[dict] = []
+        self.session_generated: set[str] = set()
 
         self.uppercase = string.ascii_uppercase
         self.lowercase = string.ascii_lowercase
@@ -86,10 +85,10 @@ class SecurePasswordGenerator:
     ) -> bool:
         """
         Add a password entry to encrypted history.
-        
+
         Returns:
             bool: True if successfully added, False if encryption not initialized.
-            
+
         Raises:
             HistoryError: If there's an error saving to history.
         """
@@ -139,7 +138,7 @@ class SecurePasswordGenerator:
     def calculate_strength_score(self, password: str) -> str:
         return self.validator.calculate_strength_score(password)
 
-    def validate(self, password: str, strict: bool = True) -> Tuple[bool, str]:
+    def validate(self, password: str, strict: bool = True) -> tuple[bool, str]:
         return self.validator.validate(password, strict)
 
     def generate_random_string(self, length: int = 16, max_attempts: int = 1000) -> str:
@@ -238,12 +237,12 @@ class SecurePasswordGenerator:
             f"Unable to generate valid PIN after {max_attempts} attempts. Try a different length."
         )
 
-    def check_password_breach(self, password: str) -> Tuple[bool, Dict[str, Any]]:
+    def check_password_breach(self, password: str) -> tuple[bool, dict[str, Any]]:
         from pwd_generator.breach_check import check_password_breach
 
         return check_password_breach(password)
 
-    def get_password_stats(self, password: str) -> Dict[str, Any]:
+    def get_password_stats(self, password: str) -> dict[str, Any]:
         is_valid, validation_message = self.validate(password)
         entropy = self.calculate_entropy(password)
         return {
@@ -291,7 +290,7 @@ class SecurePasswordGenerator:
             return True
         return False
 
-    def get_expired_passwords(self) -> List[Tuple[int, Dict]]:
+    def get_expired_passwords(self) -> list[tuple[int, dict]]:
         expired = []
         expiration_days = self.policy["expiration_days"]
 
@@ -321,7 +320,7 @@ class SecurePasswordGenerator:
         length: int = 16,
         password_type: str = "random",
         show_progress: bool = True,
-    ) -> List[str]:
+    ) -> list[str]:
         from pwd_generator.progress import show_progress as progress_bar
 
         passwords = []

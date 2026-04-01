@@ -1,9 +1,10 @@
-import pytest
 import os
 import secrets
-from pwd_generator.encryption import EncryptionManager, clear_memory
+
+import pytest
+from pwd_generator.encryption import EncryptionManager
+from pwd_generator.exceptions import EncryptionError, HistoryError, ValidationError
 from pwd_generator.validation import PasswordValidator
-from pwd_generator.exceptions import EncryptionError, ValidationError, HistoryError
 
 
 @pytest.fixture
@@ -92,12 +93,13 @@ def test_save_history_no_cipher(encryption_manager):
 
 
 def test_load_history_legacy_pbkdf2(temp_dir, master_password):
-    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-    from cryptography.hazmat.primitives import hashes
-    from cryptography.fernet import Fernet
     import base64
     import json
     import secrets
+
+    from cryptography.fernet import Fernet
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
     history_file = temp_dir / "legacy_history.enc"
     salt = secrets.token_bytes(16)

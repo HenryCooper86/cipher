@@ -1,29 +1,26 @@
+import base64
 import json
+import logging
 import os
 import secrets
-import base64
-import logging
 import warnings
-from typing import List, Dict, Optional, Union
 from pathlib import Path
+from typing import Optional, Union
+
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from pwd_generator.exceptions import (
-    EncryptionError, 
-    ValidationError, 
-    FileOperationError,
-    AuthenticationError,
-    HistoryError
-)
+
 from pwd_generator.constants import (
     KDF_ITERATIONS,
-    SALT_SIZE,
-    MIN_MASTER_PASSWORD_LENGTH,
     MIN_MASTER_PASSWORD_ENTROPY,
-    ARGON2_TIME_COST,
-    ARGON2_MEMORY_COST,
-    ARGON2_PARALLELISM,
+    MIN_MASTER_PASSWORD_LENGTH,
+    SALT_SIZE,
+)
+from pwd_generator.exceptions import (
+    EncryptionError,
+    HistoryError,
+    ValidationError,
 )
 
 logger = logging.getLogger(__name__)
@@ -42,13 +39,13 @@ except ImportError:
 def clear_memory(data: Union[bytearray, bytes, str]) -> bool:
     """
     Attempt to securely clear sensitive data from memory.
-    
+
     Args:
         data: The data to clear. Can be bytearray, bytes, or str.
-        
+
     Returns:
         bool: True if data was successfully cleared, False otherwise.
-        
+
     Note:
         - bytearray: Can be securely cleared in place (returns True)
         - bytes/str: Are immutable in Python and CANNOT be securely cleared.
@@ -58,7 +55,7 @@ def clear_memory(data: Union[bytearray, bytes, str]) -> bool:
     """
     if data is None:
         return True
-        
+
     if isinstance(data, bytearray):
         try:
             for i in range(len(data)):
@@ -141,9 +138,9 @@ class EncryptionManager:
 
             if use_argon2 and ARGON2_AVAILABLE and low_level is not None:
                 from pwd_generator.constants import (
-                    ARGON2_TIME_COST,
                     ARGON2_MEMORY_COST,
                     ARGON2_PARALLELISM,
+                    ARGON2_TIME_COST,
                 )
 
                 key_raw = low_level.hash_secret_raw(
@@ -184,7 +181,7 @@ class EncryptionManager:
             logger.error(f"Failed to initialize encryption: {e}")
             raise EncryptionError(f"Encryption initialization failed: {e}")
 
-    def load_history(self, master_password: Union[str, bytearray, bytes]) -> List[Dict]:
+    def load_history(self, master_password: Union[str, bytearray, bytes]) -> list[dict]:
         if not self.history_file.exists():
             logger.info("No history file found, starting fresh")
             return []
@@ -226,7 +223,7 @@ class EncryptionManager:
         except json.JSONDecodeError as e:
             logger.error(f"History file corrupted: {e}")
             raise EncryptionError("History file is corrupted")
-        except (OSError, IOError) as e:
+        except OSError as e:
             logger.error(f"File I/O error loading history: {e}")
             raise EncryptionError(f"Failed to load history: {e}")
         except SystemExit:
@@ -235,7 +232,7 @@ class EncryptionManager:
             logger.error(f"Unexpected error loading history: {e}")
             raise EncryptionError(f"Failed to load history: {e}")
 
-    def save_history(self, history: List[Dict]) -> None:
+    def save_history(self, history: list[dict]) -> None:
         if not self.cipher or self.salt is None:
             logger.error("Cannot save history: encryption not initialized")
             raise HistoryError(
@@ -259,7 +256,7 @@ class EncryptionManager:
             logger.debug(
                 f"History saved and secured ({'Argon2id' if ARGON2_AVAILABLE else 'PBKDF2'})"
             )
-        except (OSError, IOError, PermissionError) as e:
+        except (OSError, PermissionError) as e:
             logger.error(f"File operation error saving history: {e}")
             raise EncryptionError(f"Failed to save history: {e}")
         except (TypeError, ValueError) as e:

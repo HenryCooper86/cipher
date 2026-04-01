@@ -1,5 +1,5 @@
-from pathlib import Path
 import logging
+from pathlib import Path
 
 
 def validate_positive_int(value: str, field_name: str = "value", max_value: int = 10000) -> int:
@@ -45,20 +45,20 @@ def validate_string(value: str, field_name: str = "value", allow_empty: bool = F
 def validate_file_path(user_path: str, base_dir=None, must_exist: bool = False) -> Path:
     """
     Validate and sanitize file paths to prevent path traversal attacks.
-    
+
     Args:
         user_path: User-provided file path
         base_dir: Base directory to restrict paths to (default: current directory)
         must_exist: If True, file must exist
-    
+
     Returns:
         Resolved Path object
-    
+
     Raises:
         ValueError: If path is invalid or outside allowed directory
     """
-    logger = logging.getLogger(__name__)
-    
+    logging.getLogger(__name__)
+
     if not user_path:
         raise ValueError("Path cannot be empty")
 
@@ -66,11 +66,11 @@ def validate_file_path(user_path: str, base_dir=None, must_exist: bool = False) 
         base_dir = Path.cwd()
     else:
         base_dir = Path(base_dir).resolve()
-    
+
     # Remove null bytes and control characters
     if '\x00' in user_path:
         raise ValueError("Path cannot contain null bytes")
-    
+
     # Resolve to absolute path
     try:
         # If user_path is absolute, we check if it starts with base_dir
@@ -82,25 +82,25 @@ def validate_file_path(user_path: str, base_dir=None, must_exist: bool = False) 
             resolved = (base_dir / user_path).resolve()
     except (OSError, ValueError) as e:
         raise ValueError(f"Invalid path: {e}")
-    
+
     # Ensure path is within base directory (prevent path traversal)
     try:
         resolved.relative_to(base_dir.resolve())
     except ValueError:
         raise ValueError(f"Path '{user_path}' is outside allowed directory")
-    
+
     # Additional check for path traversal patterns
     if '..' in str(resolved) or resolved != resolved.resolve():
         raise ValueError("Path traversal not allowed")
-    
+
     # Ensure resolved path (after following symlinks) is still within base_dir
     try:
         resolved.resolve(strict=False).relative_to(base_dir.resolve())
     except ValueError:
         raise ValueError("Path traversal not allowed")
-    
+
     # Check if file exists (if required)
     if must_exist and not resolved.exists():
         raise ValueError(f"File does not exist: {user_path}")
-    
+
     return resolved

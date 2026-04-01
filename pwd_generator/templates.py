@@ -1,14 +1,15 @@
+import logging
 import secrets
 import string
-import logging
-from typing import List, Optional, Set
+from typing import Optional
+
 from pwd_generator.constants import SPECIAL_CHARS
 
 logger = logging.getLogger(__name__)
 
 
 class PasswordTemplate:
-    def __init__(self, 
+    def __init__(self,
                  name: str,
                  uppercase: bool = True,
                  lowercase: bool = True,
@@ -21,32 +22,32 @@ class PasswordTemplate:
         self.uppercase = string.ascii_uppercase if uppercase else ""
         self.lowercase = string.ascii_lowercase if lowercase else ""
         self.digits = string.digits if digits else ""
-        
+
         if custom_special:
             self.special = custom_special
         elif special:
             self.special = SPECIAL_CHARS
         else:
             self.special = ""
-        
+
         if exclude_chars:
             for char in exclude_chars:
                 self.uppercase = self.uppercase.replace(char, '')
                 self.lowercase = self.lowercase.replace(char, '')
                 self.digits = self.digits.replace(char, '')
                 self.special = self.special.replace(char, '')
-        
+
         self.all_chars = self.uppercase + self.lowercase + self.digits + self.special
         self.min_length = min_length
-        
+
         if not self.all_chars:
             raise ValueError("Template must include at least one character type")
-    
+
     def generate(self, length: int) -> str:
         if length < self.min_length:
             logger.warning(f"Requested length {length} < minimum {self.min_length}")
             length = self.min_length
-        
+
         chars = []
         if self.uppercase:
             chars.append(secrets.choice(self.uppercase))
@@ -56,10 +57,10 @@ class PasswordTemplate:
             chars.append(secrets.choice(self.digits))
         if self.special:
             chars.append(secrets.choice(self.special))
-        
+
         while len(chars) < length:
             chars.append(secrets.choice(self.all_chars))
-        
+
         secrets.SystemRandom().shuffle(chars)
         return "".join(chars)
 
@@ -107,5 +108,5 @@ def get_template(name: str) -> Optional[PasswordTemplate]:
     return TEMPLATES.get(name.lower())
 
 
-def list_templates() -> List[str]:
+def list_templates() -> list[str]:
     return list(TEMPLATES.keys())

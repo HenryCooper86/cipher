@@ -24,6 +24,7 @@ from pwd_generator.utils import (
 )
 
 from .core import constant_time_compare, get_master_password, setup_logging
+from .errors import format_cli_error_text
 from .handlers import (
     _escape_wifi_value,
     handle_analyze,
@@ -46,11 +47,60 @@ from .handlers import (
 )
 from .parser import create_parser
 
+
+def dispatch_cli_command(args, gen: SecurePasswordGenerator, parser) -> None:
+    """
+    Run a single parsed CLI command using an existing generator instance.
+    May call sys.exit on errors (same as standalone CLI).
+    """
+    if args.command in ["generate", "gen", "g"]:
+        handle_generate(args, gen)
+    elif args.command in ["analyze", "a"]:
+        handle_analyze(args, gen)
+    elif args.command in ["batch", "b"]:
+        handle_batch(args, gen)
+    elif args.command in ["history", "h"]:
+        if args.history_command in ("list", "l"):
+            handle_history_list(args, gen)
+        elif args.history_command in ("search", "s"):
+            handle_history_search(args, gen)
+        elif args.history_command == "show":
+            handle_history_show(args, gen)
+        elif args.history_command in ("delete", "d"):
+            handle_history_delete(args, gen)
+        elif args.history_command in ("export", "e"):
+            handle_history_export(args, gen)
+        else:
+            parser.parse_args(["history", "--help"])
+    elif args.command == "breach":
+        handle_breach_check(args, gen)
+    elif args.command in ["template", "t"]:
+        handle_template(args, gen)
+    elif args.command in ["config", "c"]:
+        handle_config(args)
+    elif args.command in ["profile", "p"]:
+        handle_profile(args, gen)
+    elif args.command in ["audit", "au"]:
+        handle_audit(args, gen)
+    elif args.command in ["import", "i"]:
+        handle_import(args, gen)
+    elif args.command == "pattern":
+        handle_pattern(args, gen)
+    elif args.command == "qr":
+        handle_qr(args, gen)
+    elif args.command == "compare":
+        handle_compare(args, gen)
+    else:
+        print(f"[ERROR] Unknown command: {args.command!r}")
+        sys.exit(1)
+
+
 __all__ = [
     "SecurePasswordGenerator",
     "constant_time_compare",
     "copy_to_clipboard",
     "create_parser",
+    "dispatch_cli_command",
     "get_master_password",
     "main_cli",
     "print_password_stats",
@@ -118,7 +168,20 @@ def main_cli():
 
     if not command:
         parser.print_help()
+        print(
+            "\nTip: for the full interactive menu, run with no arguments or use:\n"
+            f"  {parser.prog} interactive",
+            file=sys.stderr,
+        )
         sys.exit(0)
+
+    if command in ("interactive", "menu"):
+        from pwd_generator.interactive import main_interactive
+        from pwd_generator.logging_config import quiet_console_for_interactive_menu
+
+        quiet_console_for_interactive_menu()
+        main_interactive(history_file=str(history_file))
+        return
 
     if command in commands_not_requiring_master:
         if command in ["config", "c"]:
@@ -161,43 +224,15 @@ def main_cli():
         sys.exit(1)
 
     try:
-        if args.command in ["generate", "gen", "g"]:
-            handle_generate(args, gen)
-        elif args.command in ["analyze", "a"]:
-            handle_analyze(args, gen)
-        elif args.command in ["batch", "b"]:
-            handle_batch(args, gen)
-        elif args.command in ["history", "h"]:
-            if args.history_command in ("list", "l"):
-                handle_history_list(args, gen)
-            elif args.history_command in ("search", "s"):
-                handle_history_search(args, gen)
-            elif args.history_command == "show":
-                handle_history_show(args, gen)
-            elif args.history_command in ("delete", "d"):
-                handle_history_delete(args, gen)
-            elif args.history_command in ("export", "e"):
-                handle_history_export(args, gen)
-            else:
-                parser.parse_args(["history", "--help"])
-        elif args.command == "breach":
-            handle_breach_check(args, gen)
-        elif args.command in ["template", "t"]:
-            handle_template(args, gen)
-        elif args.command in ["config", "c"]:
-            handle_config(args)
-        elif args.command in ["profile", "p"]:
-            handle_profile(args, gen)
-        elif args.command in ["audit", "au"]:
-            handle_audit(args, gen)
-        elif args.command in ["import", "i"]:
-            handle_import(args, gen)
-        elif args.command == "pattern":
-            handle_pattern(args, gen)
-        elif args.command == "qr":
-            handle_qr(args, gen)
-        elif args.command == "compare":
-            handle_compare(args, gen)
+        dispatch_cli_command(args, gen, parser)
+    except BrokenPipeError:
+        if master_password:
+            clear_memory(master_password)
+        try:
+            sys.stdout.close()
+        except OSError:
+            pass
+        raise SystemExit(0)
     except KeyboardInterrupt:
         print("\n\nInterrupted.")
         if master_password:
@@ -207,37 +242,17 @@ def main_cli():
         if master_password:
             clear_memory(master_password)
         raise
-    except ValidationError as e:
-        print(f"[ERROR] Validation failed: {e}")
-        if master_password:
-            clear_memory(master_password)
-        sys.exit(1)
-    except FileOperationError as e:
-        print(f"[ERROR] File operation failed: {e}")
-        if e.details:
-            print(f"   Details: {e.details}")
-        if master_password:
-            clear_memory(master_password)
-        sys.exit(1)
-    except HistoryError as e:
-        print(f"[ERROR] History operation failed: {e}")
-        if master_password:
-            clear_memory(master_password)
-        sys.exit(1)
-    except EncryptionError as e:
-        print(f"[ERROR] Encryption error: {e}")
-        if master_password:
-            clear_memory(master_password)
-        sys.exit(1)
-    except ValueError as e:
-        print(f"[ERROR] Invalid input: {e}")
-        if master_password:
-            clear_memory(master_password)
-        sys.exit(1)
-    except PasswordGeneratorError as e:
-        print(f"[ERROR] {e}")
-        if e.details:
-            print(f"   Details: {e.details}")
+    except (
+        ValidationError,
+        FileOperationError,
+        HistoryError,
+        EncryptionError,
+        ValueError,
+        PasswordGeneratorError,
+    ) as e:
+        msg = format_cli_error_text(e)
+        if msg:
+            print(msg, end="")
         if master_password:
             clear_memory(master_password)
         sys.exit(1)

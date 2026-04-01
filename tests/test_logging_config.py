@@ -1,5 +1,6 @@
-import pytest
 import logging
+
+import pytest
 from pwd_generator.logging_config import SecurityFilter, setup_logging
 
 

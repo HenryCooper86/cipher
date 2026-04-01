@@ -16,6 +16,8 @@ Examples:
   horizon-cipher batch --count 10 --length 16
   horizon-cipher history list
   horizon-cipher history search gmail
+  horizon-cipher interactive
+  horizon-cipher --history-file ./vault.enc interactive
         """,
     )
 
@@ -337,6 +339,12 @@ Examples:
     )
     compare_parser.add_argument(
         "passwords", nargs="+", type=str, help="Passwords to compare"
+    )
+
+    subparsers.add_parser(
+        "interactive",
+        aliases=["menu"],
+        help="Full-screen interactive menu (master-password prompts; same as running with no arguments)",
     )
 
     return parser

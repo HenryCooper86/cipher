@@ -1,10 +1,9 @@
 """Tests for import/export error paths."""
-import pytest
-import json
 import csv
-from io import StringIO
-from unittest.mock import patch, mock_open
+import json
+from unittest.mock import mock_open, patch
 
+import pytest
 from pwd_generator import import_export
 from pwd_generator.exceptions import FileOperationError, ValidationError
 
@@ -94,7 +93,7 @@ class TestExportTo1Password:
     """Tests for export_to_1password_csv error paths."""
 
     def test_export_io_error(self):
-        with patch('builtins.open', side_effect=IOError("Disk full")):
+        with patch('builtins.open', side_effect=OSError("Disk full")):
             result = import_export.export_to_1password_csv([], "/tmp/test.csv")
             assert result is False
 
@@ -119,7 +118,7 @@ class TestExportToLastPass:
     """Tests for export_to_lastpass_csv error paths."""
 
     def test_export_io_error(self):
-        with patch('builtins.open', side_effect=IOError("Disk full")):
+        with patch('builtins.open', side_effect=OSError("Disk full")):
             result = import_export.export_to_lastpass_csv([], "/tmp/test.csv")
             assert result is False
 
@@ -127,7 +126,7 @@ class TestExportToLastPass:
         history = [
             {"password": "pass123", "metadata": {"service": "Gmail", "notes": "test notes"}}
         ]
-        with patch('builtins.open', mock_open()) as mock_file:
+        with patch('builtins.open', mock_open()):
             result = import_export.export_to_lastpass_csv(history, "/tmp/test.csv")
             assert result is True
 
@@ -136,7 +135,7 @@ class TestExportToBitwarden:
     """Tests for export_to_bitwarden_csv error paths."""
 
     def test_export_io_error(self):
-        with patch('builtins.open', side_effect=IOError("Disk full")):
+        with patch('builtins.open', side_effect=OSError("Disk full")):
             result = import_export.export_to_bitwarden_csv([], "/tmp/test.csv")
             assert result is False
 
@@ -144,6 +143,6 @@ class TestExportToBitwarden:
         history = [
             {"password": "pass123", "metadata": {"service": "Gmail", "notes": "test"}}
         ]
-        with patch('builtins.open', mock_open()) as mock_file:
+        with patch('builtins.open', mock_open()):
             result = import_export.export_to_bitwarden_csv(history, "/tmp/test.csv")
             assert result is True

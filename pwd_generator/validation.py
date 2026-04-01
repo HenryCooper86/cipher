@@ -1,8 +1,8 @@
-import string
 import logging
 import re
-from typing import Tuple, Optional, List, Dict, Any
-from pwd_generator.exceptions import ValidationError
+import string
+from typing import Any, Optional
+
 from pwd_generator.constants import KEYBOARD_ROWS, SPECIAL_CHARS
 
 logger = logging.getLogger(__name__)
@@ -23,8 +23,8 @@ class PasswordValidator:
     def __init__(
         self,
         username: str = "",
-        policy: Optional[Dict[str, Any]] = None,
-        history: Optional[List[Dict[str, Any]]] = None,
+        policy: Optional[dict[str, Any]] = None,
+        history: Optional[list[dict[str, Any]]] = None,
     ):
         self.username = username.lower()
         self.policy = policy or {}
@@ -41,7 +41,7 @@ class PasswordValidator:
         self.keyboard_rows = KEYBOARD_ROWS
 
     def has_consecutive_pattern(self, password: str) -> bool:
-        p_lower = password.lower()
+        password.lower()
 
         for i in range(len(password) - 2):
             chars = password[i : i + 3]
@@ -111,7 +111,7 @@ class PasswordValidator:
         else:
             return "Very Strong"
 
-    def validate(self, password: str, strict: bool = True) -> Tuple[bool, str]:
+    def validate(self, password: str, strict: bool = True) -> tuple[bool, str]:
         import hashlib
 
         if len(password) < self.policy.get("min_length", 12):

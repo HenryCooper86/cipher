@@ -1,9 +1,8 @@
 """Extended tests for config error paths."""
-import pytest
-import json
-from unittest.mock import patch, mock_open, MagicMock
 from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
 
+import pytest
 from pwd_generator import config
 
 
@@ -50,7 +49,7 @@ class TestLoadConfig:
         config.YAML_AVAILABLE = True
         mock_yaml = MagicMock()
         mock_yaml.safe_load.return_value = {'policy': {'min_length': 20}}
-        
+
         with patch('builtins.open', mock_open(read_data=yaml_content)):
             with patch.object(Path, 'exists', return_value=True):
                 with patch.dict('sys.modules', {'yaml': mock_yaml}):
@@ -62,7 +61,7 @@ class TestLoadConfig:
     def test_yaml_config_yaml_not_available(self):
         yaml_content = "policy:\n  min_length: 20"
         config.YAML_AVAILABLE = False
-        
+
         with patch('builtins.open', mock_open(read_data=yaml_content)):
             with patch.object(Path, 'exists', return_value=True):
                 with patch.object(config, '_ensure_yaml', return_value=False):
@@ -93,8 +92,8 @@ class TestSaveConfig:
         config.YAML_AVAILABLE = True
         mock_yaml = MagicMock()
         test_config = {'policy': {'min_length': 20}}
-        
-        with patch('builtins.open', mock_open()) as mock_file:
+
+        with patch('builtins.open', mock_open()):
             with patch.object(Path, '__truediv__', return_value=Path('/tmp/test.yaml')):
                 with patch.object(config, 'yaml', mock_yaml):
                     result = config.save_config(test_config, '/tmp/test.yaml')
@@ -104,14 +103,14 @@ class TestSaveConfig:
     def test_yaml_save_yaml_not_available(self):
         config.YAML_AVAILABLE = False
         test_config = {'policy': {'min_length': 20}}
-        
+
         with patch.object(config, '_ensure_yaml', return_value=False):
             result = config.save_config(test_config, '/tmp/test.yaml')
             assert result is False
         config.YAML_AVAILABLE = False  # Reset
 
     def test_io_error(self):
-        with patch('builtins.open', side_effect=IOError("Permission denied")):
+        with patch('builtins.open', side_effect=OSError("Permission denied")):
             result = config.save_config({'policy': {}}, '/tmp/config.json')
             assert result is False
 
@@ -119,7 +118,7 @@ class TestSaveConfig:
         # When trying to serialize something that can't be JSON encoded
         class Unserializable:
             pass
-        
+
         with patch('builtins.open', mock_open()):
             with patch('json.dump', side_effect=TypeError("Unserializable")):
                 result = config.save_config({'policy': {'obj': Unserializable()}}, '/tmp/config.json')
