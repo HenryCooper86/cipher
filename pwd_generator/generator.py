@@ -69,6 +69,9 @@ class SecurePasswordGenerator:
                 master_password, self.validator.calculate_entropy
             )
             self.encryption_manager.init_encryption_system(master_password)
+            # Save empty history to create the encrypted vault file immediately
+            # This ensures the vault exists on first run before any passwords are saved
+            self.encryption_manager.save_history(self.history)
             self.history = self.encryption_manager.load_history(master_password)
             self.validator.history = self.history
             logger.info("Password generator initialized with encrypted history")
