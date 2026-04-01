@@ -1,73 +1,147 @@
 # Horizon Cypher
 
-Secure password generator with **encrypted saved passwords**, CLI, optional **desktop GUI**, breach checks (Have I Been Pwned), QR codes, and audits.
+**Secure password generator** with encrypted saved passwords, CLI, optional desktop GUI, breach checks, QR codes, and security audits.
 
-## Quick start
+---
 
-| What | Command |
+## Quick Start
+
+### Run the Application
+
+| Mode | Command |
 |------|---------|
 | **GUI** (after `pip install -e ".[gui]"`) | `horizon-cipher-gui` or `python gui.py` |
-| **CLI** (full app) | `horizon-cipher` or `python cipher.py` |
-| **Minimal demo** (stdlib only, no `pip install`) | `python simple_cipher.py` |
+| **CLI** (full application) | `horizon-cipher` or `python cipher.py` |
+| **Minimal demo** (stdlib only) | `python simple_cipher.py` |
 
-First full-app run asks for a **master password** (12+ characters) to encrypt your history file.
+> **Note:** First full-app run asks for a master password (12+ characters) to encrypt your history file.
 
-## Install
+---
 
-- **Python 3.9+**
-- From the repo root:
+## Installation
+
+### Requirements
+
+- Python 3.9 or higher
+
+### Install Commands
 
 ```bash
+# Basic installation
 pip install -e .
+
+# With GUI support (PyQt6)
+pip install -e ".[gui]"
+
+# With Argon2 KDF (recommended for better security)
+pip install -e ".[argon2]"
+
+# Development dependencies
+pip install -e ".[dev]"
 ```
 
-- **GUI:** `pip install -e ".[gui]"` (PyQt6)
-- **Argon2 KDF** (optional; else PBKDF2): `pip install -e ".[argon2]"`
+---
 
-Dependencies are listed in `pyproject.toml` / `requirements.txt`.
+## Usage Examples
 
-## Common CLI examples
+### Generate Passwords
 
 ```bash
+# Random password (20 characters)
 horizon-cipher generate --length 20
+
+# Passphrase (5 words)
 horizon-cipher generate --type passphrase --words 5
+
+# PIN code (6 digits)
 horizon-cipher generate --type pin --length 6
+```
+
+### Analyze & Check
+
+```bash
+# Analyze password strength
 horizon-cipher analyze "your-password-here"
+
+# Check if password was in a breach
 horizon-cipher breach "your-password-here"
+```
+
+### Manage History
+
+```bash
+# List saved passwords
 horizon-cipher history list
+
+# Search in history
 horizon-cipher history search gmail
 ```
 
-Use `python cipher.py …` instead of `horizon-cipher` if you did not install the package.
+### Interactive Mode
 
-Interactive menu: run `horizon-cipher` or `python cipher.py` with no arguments.
+```bash
+# Run with interactive menu
+horizon-cipher
 
-## What you get
+# Or
+python cipher.py
+```
 
-- Random passwords, passphrases, PINs; patterns, templates, profiles  
-- Encrypted history (PBKDF2 or Argon2 + Fernet), search/filter/sort, import/export (JSON, CSV, and common manager formats)  
-- Strength and entropy checks, reuse and pattern rules, security audit  
-- QR codes for passwords / Wi‑Fi (optional `qrcode` + Pillow; often already installed with the package)  
-- JSON/YAML config under the paths used by `pwd_generator.config`
+---
+
+## Features
+
+- **Password Generation:** Random passwords, passphrases, PINs, patterns, templates, and profiles
+- **Encrypted Storage:** PBKDF2 or Argon2 + Fernet encryption for your password history
+- **History Management:** Search, filter, sort, import, and export (JSON, CSV, and common manager formats)
+- **Security Analysis:** Strength and entropy checks, reuse detection, pattern rules
+- **Security Audit:** Comprehensive password security audit
+- **Breach Checking:** Check passwords against Have I Been Pwned database (k-anonymity)
+- **QR Codes:** Generate QR codes for passwords and Wi-Fi credentials
+- **Configuration:** JSON/YAML config support with customizable options
+
+---
 
 ## Configuration
 
-Optional `config.json` / `config.yaml` beside your working directory or user config paths—see `pwd_generator/config.py` for discovery. Typical knobs: length/entropy limits, history size, expiration days.
+Create a `config.json` or `config.yaml` file in your working directory or user config path.
 
-## Security (short)
+### Configurable Options
 
-- **Lost master password** → encrypted history cannot be recovered. Back up `password_history.enc` safely.  
-- Breach checks use **k-anonymity** (hash prefix only to HIBP).  
-- History files aim for restrictive permissions; keep backups and OS access control in mind.
+- Length and entropy limits
+- History size
+- Password expiration days
+
+See `pwd_generator/config.py` for the full list of options and discovery paths.
+
+---
+
+## Security Notes
+
+| Topic | Description |
+|-------|-------------|
+| **Master Password** | If lost, encrypted history cannot be recovered. Always back up `password_history.enc`. |
+| **Breach Checks** | Uses k-anonymity - only hash prefix is sent to Have I Been Pwned. |
+| **File Permissions** | History files aim for restrictive permissions. Keep backups and OS access control in mind. |
+
+---
 
 ## Development
 
+### Run Tests
+
 ```bash
-pip install -e ".[dev]"
 pytest -q
+```
+
+### Lint Code
+
+```bash
 ruff check pwd_generator cipher.py gui.py simple_cipher.py
 ```
 
+---
+
 ## License
 
-MIT — see `pyproject.toml`.
+MIT License - See `pyproject.toml` for details.
