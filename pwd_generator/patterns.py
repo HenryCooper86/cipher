@@ -89,19 +89,39 @@ class PatternGenerator:
         """Extract number from token like '4letters' -> 4 or 'letters' -> default."""
         match = re.search(r'^(\d+)', token)
         if match:
-            return int(match.group(1))
+            value = int(match.group(1))
+            # Security: Limit extracted numbers to reasonable bounds (max 100 chars)
+            max_value = 100
+            if value > max_value:
+                logger.warning(
+                    f"Pattern token '{token}' exceeds maximum allowed value ({max_value}). "
+                    f"Using {max_value} instead."
+                )
+                return max_value
+            if value < 1:
+                return default
+            return value
         return default
 
 
 def validate_pattern(pattern: str) -> tuple[bool, str]:
-    """Validate pattern syntax."""
+    """Validate pattern syntax with security checks."""
     if not pattern:
         return False, "Pattern cannot be empty"
 
+    # Security: Limit pattern length to prevent DoS
+    if len(pattern) > 1000:
+        return False, "Pattern too long (max 1000 characters)"
+
     brackets = 0
+    bracket_count = 0
     for char in pattern:
         if char == '[':
             brackets += 1
+            bracket_count += 1
+            # Security: Limit number of tokens to prevent resource exhaustion
+            if bracket_count > 50:
+                return False, "Too many tokens in pattern (max 50)"
         elif char == ']':
             brackets -= 1
             if brackets < 0:

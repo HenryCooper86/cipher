@@ -1,6 +1,10 @@
 # Key Derivation Parameters (PBKDF2) - Legacy support
+# OWASP 2023 recommends 310,000+ iterations for PBKDF2-SHA256
+# We use 600,000 for compatibility, but recommend Argon2id
 KDF_ITERATIONS = 600000
-SALT_SIZE = 16
+# For new installations or re-encryption, prefer Argon2id which is enabled by default
+# when argon2-cffi is installed (see pyproject.toml extras)
+SALT_SIZE = 32  # Increased from 16 to 256-bit salt for better security
 
 # Key Derivation Parameters (Argon2id) - Recommended
 ARGON2_TIME_COST = 3
@@ -737,6 +741,8 @@ WORDLIST = [
     "scheme", "scheming", "schilling", "schnapps", "scholar", "science", "scientist", "scion",
     "scoff", "scolding", "scone", "scoop", "scooter", "scope", "scorch", "scorebook",
     "scorecard", "scored", "scoreless", "scorer", "scoring", "scorn", "scorpion", "scotch",
+    "scoundrel", "scoured", "scouring", "scouting", "scouts", "scowling", "scrabble", "scraggly",
+    "scrambled", "scrambler", "scrap", "scratch", "scrawny", "screen", "scribble", "scribe",
     "scoundrel", "scoured", "scouring", "scouting", "scouts", "scowling", "scrabble", "scraggly",
     "scrambled", "scrambler", "scrap", "scratch", "scrawny", "screen", "scribble", "scribe",
     "scribing", "scrimmage", "script", "scroll", "scrooge", "scrounger", "scrubbed", "scrubber",

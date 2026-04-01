@@ -3,8 +3,10 @@ import json
 import logging
 import os
 import secrets
+import time
 import warnings
 from pathlib import Path
+from threading import Lock
 from typing import Optional, Union
 
 from cryptography.fernet import Fernet, InvalidToken
@@ -34,6 +36,107 @@ try:
     ARGON2_AVAILABLE = True
 except ImportError:
     low_level = None
+
+
+# Brute-force protection constants
+MAX_DECRYPTION_ATTEMPTS = 5  # Maximum failed attempts before lockout
+LOCKOUT_DURATION_SECONDS = 300  # 5 minutes lockout after max attempts
+DECRYPTION_ATTEMPT_FILE = ".decryption_attempts"
+
+# Global tracking for decryption attempts (in-memory, per-process)
+_decryption_attempts: dict[str, list[float]] = {}
+_attempt_lock = Lock()
+
+
+def _get_vault_id() -> str:
+    """Get a unique identifier for the current vault for attempt tracking."""
+    # Use a combination of hostname and a fixed salt for vault identification
+    import socket
+    try:
+        hostname = socket.gethostname()
+    except Exception:
+        hostname = "unknown"
+    return f"{hostname}_{os.getcwd()}"
+
+
+def _is_locked_out() -> bool:
+    """Check if the vault is currently locked out due to too many failed attempts."""
+    with _attempt_lock:
+        vault_id = _get_vault_id()
+        now = time.time()
+        
+        # Clean up old attempts
+        if vault_id in _decryption_attempts:
+            _decryption_attempts[vault_id] = [
+                t for t in _decryption_attempts[vault_id]
+                if now - t < LOCKOUT_DURATION_SECONDS
+            ]
+        
+        # Check if locked out
+        if vault_id in _decryption_attempts:
+            attempts = _decryption_attempts[vault_id]
+            if len(attempts) >= MAX_DECRYPTION_ATTEMPTS:
+                # Check if oldest attempt is within lockout period
+                if attempts and (now - attempts[0]) < LOCKOUT_DURATION_SECONDS:
+                    remaining = LOCKOUT_DURATION_SECONDS - (now - attempts[0])
+                    logger.warning(
+                        f"Vault locked out due to {len(attempts)} failed attempts. "
+                        f"Try again in {int(remaining)} seconds."
+                    )
+                    return True
+                else:
+                    # Lockout period expired, clear attempts
+                    _decryption_attempts[vault_id] = []
+        
+        return False
+
+
+def _record_failed_attempt() -> None:
+    """Record a failed decryption attempt."""
+    with _attempt_lock:
+        vault_id = _get_vault_id()
+        now = time.time()
+        
+        if vault_id not in _decryption_attempts:
+            _decryption_attempts[vault_id] = []
+        
+        _decryption_attempts[vault_id].append(now)
+        
+        # Log warning if approaching lockout
+        if len(_decryption_attempts[vault_id]) >= MAX_DECRYPTION_ATTEMPTS - 2:
+            remaining = MAX_DECRYPTION_ATTEMPTS - len(_decryption_attempts[vault_id])
+            logger.warning(
+                f"Failed decryption attempt recorded. "
+                f"{remaining} attempts remaining before lockout."
+            )
+
+
+def _clear_failed_attempts() -> None:
+    """Clear all failed attempts after successful decryption."""
+    with _attempt_lock:
+        vault_id = _get_vault_id()
+        if vault_id in _decryption_attempts:
+            _decryption_attempts[vault_id] = []
+        logger.debug("Cleared failed decryption attempts after successful auth")
+
+
+def check_brute_force_protection() -> tuple[bool, str]:
+    """
+    Check if decryption is allowed based on brute-force protection.
+    
+    Returns:
+        Tuple of (is_allowed, message)
+    """
+    if _is_locked_out():
+        vault_id = _get_vault_id()
+        now = time.time()
+        if vault_id in _decryption_attempts and _decryption_attempts[vault_id]:
+            oldest = min(_decryption_attempts[vault_id])
+            remaining = LOCKOUT_DURATION_SECONDS - (now - oldest)
+            return False, f"Locked out. Try again in {int(remaining)} seconds."
+        return False, "Temporarily locked out due to too many failed attempts."
+    
+    return True, "OK"
 
 
 def clear_memory(data: Union[bytearray, bytes, str]) -> bool:
@@ -190,20 +293,26 @@ class EncryptionManager:
             with open(self.history_file, "rb") as f:
                 raw_content = f.read()
 
-            if len(raw_content) <= SALT_SIZE + 1:
+            # Check minimum size (at least salt + some ciphertext)
+            if len(raw_content) < SALT_SIZE + 1:
                 logger.warning("History file too small, starting fresh")
                 return []
 
             method_flag = raw_content[0]
+            
+            # Determine format: modern (method_flag 0 or 1) or legacy (any other value)
             if method_flag in [0, 1]:
+                # Modern format: [method_flag][salt][ciphertext]
                 self.salt = raw_content[1 : SALT_SIZE + 1]
                 ciphertext = raw_content[SALT_SIZE + 1 :]
                 use_argon2 = method_flag == 1
             else:
+                # Legacy format: [salt][ciphertext] (no method flag)
                 self.salt = raw_content[:SALT_SIZE]
                 ciphertext = raw_content[SALT_SIZE:]
                 use_argon2 = False
 
+            # Initialize encryption system
             self.init_encryption_system(
                 master_password, self.salt, use_argon2=use_argon2
             )
@@ -211,18 +320,20 @@ class EncryptionManager:
             if not self.cipher:
                 raise EncryptionError("Failed to initialize encryption cipher")
 
-            decrypted = self.cipher.decrypt(ciphertext).decode()
-            history_data = json.loads(decrypted).get("history", [])
+            try:
+                decrypted = self.cipher.decrypt(ciphertext).decode()
+                history_data = json.loads(decrypted).get("history", [])
+                logger.info(f"Loaded {len(history_data)} password entries from history")
+                return history_data
+            except InvalidToken:
+                logger.error("Failed to decrypt history - incorrect master password")
+                raise EncryptionError("Incorrect master password or corrupted history file")
+            except json.JSONDecodeError as e:
+                logger.error(f"History file corrupted: {e}")
+                raise EncryptionError("History file is corrupted")
 
-            logger.info(f"Loaded {len(history_data)} password entries from history")
-            return history_data
-
-        except InvalidToken:
-            logger.error("Failed to decrypt history - incorrect master password")
-            raise EncryptionError("Incorrect master password or corrupted history file")
-        except json.JSONDecodeError as e:
-            logger.error(f"History file corrupted: {e}")
-            raise EncryptionError("History file is corrupted")
+        except EncryptionError:
+            raise
         except OSError as e:
             logger.error(f"File I/O error loading history: {e}")
             raise EncryptionError(f"Failed to load history: {e}")
