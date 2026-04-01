@@ -256,7 +256,7 @@ class ThemeManager:
         return f"""
             /* Global Styles */
             QWidget {{
-                font-family: 'Segoe UI', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+                font-family: 'SF Pro Display', 'Helvetica Neue', -apple-system, Arial, sans-serif;
                 font-size: 13px;
             }}
 
