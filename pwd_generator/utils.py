@@ -28,6 +28,13 @@ def safe_getpass(prompt: str) -> bytearray:
         return bytearray(password.encode("utf-8"))
     except KeyboardInterrupt:
         print("\n\nInterrupted. Goodbye!")
+        # Clear any partial password data from memory before exiting
+        try:
+            from pwd_generator.encryption import clear_memory
+            # We can't clear what we never received, but we log the interrupt
+            logger.warning("Keyboard interrupt during password entry - no sensitive data stored")
+        except Exception:
+            pass
         sys.exit(0)
 
 

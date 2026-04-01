@@ -115,6 +115,8 @@ class MasterPasswordDialog(QDialog):
 
     def _accept(self):
         """Handle accept button."""
+        import hmac
+        
         password = self.password_edit.text()
 
         if len(password) < 12:
@@ -123,7 +125,8 @@ class MasterPasswordDialog(QDialog):
 
         if self._is_new:
             confirm = self.confirm_edit.text()
-            if password != confirm:
+            # Use constant-time comparison to prevent timing attacks
+            if not hmac.compare_digest(password.encode('utf-8'), confirm.encode('utf-8')):
                 QMessageBox.warning(self, "Error", "Passwords do not match.")
                 return
 
